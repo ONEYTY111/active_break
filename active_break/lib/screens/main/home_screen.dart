@@ -1,0 +1,379 @@
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../../providers/user_provider.dart';
+import '../../providers/activity_provider.dart';
+import '../../utils/app_localizations.dart';
+import '../../utils/activity_icons.dart';
+import '../../widgets/activity_chart.dart';
+import '../../models/physical_activity.dart';
+
+class HomeScreen extends StatefulWidget {
+  const HomeScreen({super.key});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  List<ActivityRecord> _weeklyRecords = [];
+  bool _isLoadingWeekly = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // 延迟到下一帧执行，避免在构建过程中调用setState
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadWeeklyData();
+    });
+  }
+
+  Future<void> _loadWeeklyData() async {
+    final userProvider = Provider.of<UserProvider>(context, listen: false);
+    final activityProvider = Provider.of<ActivityProvider>(
+      context,
+      listen: false,
+    );
+
+    if (userProvider.currentUser != null) {
+      setState(() {
+        _isLoadingWeekly = true;
+      });
+
+      _weeklyRecords = await activityProvider.getWeeklyRecords(
+        userProvider.currentUser!.userId!,
+      );
+
+      setState(() {
+        _isLoadingWeekly = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(AppLocalizations.of(context).translate('home')),
+        actions: [
+          Consumer<UserProvider>(
+            builder: (context, userProvider, child) {
+              return Padding(
+                padding: const EdgeInsets.only(right: 16),
+                child: CircleAvatar(
+                  backgroundImage: userProvider.currentUser?.avatarUrl != null
+                      ? NetworkImage(userProvider.currentUser!.avatarUrl!)
+                      : null,
+                  child: userProvider.currentUser?.avatarUrl == null
+                      ? Text(
+                          userProvider.currentUser?.username
+                                  .substring(0, 1)
+                                  .toUpperCase() ??
+                              'U',
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        )
+                      : null,
+                ),
+              );
+            },
+          ),
+        ],
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Welcome section
+            Consumer<UserProvider>(
+              builder: (context, userProvider, child) {
+                return Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Row(
+                      children: [
+                        Icon(Icons.waving_hand, color: Colors.orange, size: 32),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Hello, ${userProvider.currentUser?.username ?? 'User'}!',
+                                style: Theme.of(context).textTheme.titleLarge
+                                    ?.copyWith(fontWeight: FontWeight.bold),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                'Ready for today\'s workout?',
+                                style: Theme.of(context).textTheme.bodyMedium
+                                    ?.copyWith(
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.onSurfaceVariant,
+                                    ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+            const SizedBox(height: 24),
+
+            // Check-in streak
+            Consumer<ActivityProvider>(
+              builder: (context, activityProvider, child) {
+                final streak = activityProvider.checkinStreak;
+                return Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.primaryContainer,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Icon(
+                            Icons.local_fire_department,
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onPrimaryContainer,
+                            size: 24,
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                AppLocalizations.of(
+                                  context,
+                                ).translate('consecutive_days'),
+                                style: Theme.of(context).textTheme.titleMedium,
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                '${streak?.currentStreak ?? 0} ${AppLocalizations.of(context).translate('days')}',
+                                style: Theme.of(context).textTheme.headlineSmall
+                                    ?.copyWith(
+                                      fontWeight: FontWeight.bold,
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.primary,
+                                    ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+            const SizedBox(height: 24),
+
+            // Recent activities section
+            Text(
+              AppLocalizations.of(context).translate('recent_activities'),
+              style: Theme.of(
+                context,
+              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 12),
+            Consumer<ActivityProvider>(
+              builder: (context, activityProvider, child) {
+                if (activityProvider.isLoading) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+
+                if (activityProvider.recentRecords.isEmpty) {
+                  return Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(32),
+                      child: Column(
+                        children: [
+                          Icon(
+                            Icons.fitness_center,
+                            size: 48,
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurfaceVariant,
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            'No recent activities',
+                            style: Theme.of(context).textTheme.titleMedium
+                                ?.copyWith(
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurfaceVariant,
+                                ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Start your first workout!',
+                            style: Theme.of(context).textTheme.bodyMedium
+                                ?.copyWith(
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurfaceVariant,
+                                ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }
+
+                return ListView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: activityProvider.recentRecords.take(5).length,
+                  itemBuilder: (context, index) {
+                    final record = activityProvider.recentRecords[index];
+                    final activity = activityProvider.activities.firstWhere(
+                      (a) => a.activityTypeId == record.activityTypeId,
+                      orElse: () => activityProvider.activities.first,
+                    );
+
+                    return Card(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      child: ListTile(
+                        leading: CircleAvatar(
+                          backgroundColor: ActivityIcons.getColorByActivityType(
+                            activity.activityTypeId!,
+                          ).withValues(alpha: 0.2),
+                          child: Icon(
+                            ActivityIcons.getIconByActivityType(
+                              activity.activityTypeId!,
+                            ),
+                            color: ActivityIcons.getColorByActivityType(
+                              activity.activityTypeId!,
+                            ),
+                          ),
+                        ),
+                        title: Text(activity.name),
+                        subtitle: Text(
+                          '${record.durationMinutes} ${AppLocalizations.of(context).translate('minutes')} • ${record.caloriesBurned} ${AppLocalizations.of(context).translate('calories')}',
+                        ),
+                        trailing: Text(
+                          '${record.beginTime.month}/${record.beginTime.day}',
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurfaceVariant,
+                              ),
+                        ),
+                      ),
+                    );
+                  },
+                );
+              },
+            ),
+            const SizedBox(height: 24),
+
+            // Weekly summary placeholder
+            Text(
+              AppLocalizations.of(context).translate('weekly_summary'),
+              style: Theme.of(
+                context,
+              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 12),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _buildSummaryItem(
+                            context,
+                            Icons.timer,
+                            AppLocalizations.of(
+                              context,
+                            ).translate('total_duration'),
+                            '${_getTotalDuration()} ${AppLocalizations.of(context).translate('minutes')}',
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: _buildSummaryItem(
+                            context,
+                            Icons.local_fire_department,
+                            AppLocalizations.of(
+                              context,
+                            ).translate('total_calories'),
+                            '${_getTotalCalories()} ${AppLocalizations.of(context).translate('calories')}',
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 24),
+
+            // Activity chart
+            if (!_isLoadingWeekly) ActivityChart(weeklyRecords: _weeklyRecords),
+          ],
+        ),
+      ),
+    );
+  }
+
+  int _getTotalDuration() {
+    return _weeklyRecords.fold<int>(
+      0,
+      (sum, record) => sum + record.durationMinutes,
+    );
+  }
+
+  int _getTotalCalories() {
+    return _weeklyRecords.fold<int>(
+      0,
+      (sum, record) => sum + record.caloriesBurned,
+    );
+  }
+
+  Widget _buildSummaryItem(
+    BuildContext context,
+    IconData icon,
+    String title,
+    String value,
+  ) {
+    return Column(
+      children: [
+        Icon(icon, color: Theme.of(context).colorScheme.primary, size: 32),
+        const SizedBox(height: 8),
+        Text(
+          title,
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 4),
+        Text(
+          value,
+          style: Theme.of(
+            context,
+          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+          textAlign: TextAlign.center,
+        ),
+      ],
+    );
+  }
+}
