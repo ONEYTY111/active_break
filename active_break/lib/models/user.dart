@@ -6,6 +6,7 @@ class User {
   final String? phone;
   final String? gender;
   final String? avatarUrl;
+  final DateTime? birthday;
   final DateTime? lastLoginTime;
   final DateTime? createdAt;
   final DateTime? updatedAt;
@@ -19,6 +20,7 @@ class User {
     this.phone,
     this.gender,
     this.avatarUrl,
+    this.birthday,
     this.lastLoginTime,
     this.createdAt,
     this.updatedAt,
@@ -34,6 +36,9 @@ class User {
       phone: map['phone'],
       gender: map['gender'],
       avatarUrl: map['avatar_url'],
+      birthday: map['birthday'] != null 
+          ? DateTime.parse(map['birthday']) 
+          : null,
       lastLoginTime: map['last_login_time'] != null 
           ? DateTime.parse(map['last_login_time']) 
           : null,
@@ -56,6 +61,7 @@ class User {
       'phone': phone,
       'gender': gender,
       'avatar_url': avatarUrl,
+      'birthday': birthday?.toIso8601String(),
       'last_login_time': lastLoginTime?.toIso8601String(),
       'created_at': createdAt?.toIso8601String(),
       'updated_at': updatedAt?.toIso8601String(),
@@ -71,6 +77,7 @@ class User {
     String? phone,
     String? gender,
     String? avatarUrl,
+    DateTime? birthday,
     DateTime? lastLoginTime,
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -84,6 +91,7 @@ class User {
       phone: phone ?? this.phone,
       gender: gender ?? this.gender,
       avatarUrl: avatarUrl ?? this.avatarUrl,
+      birthday: birthday ?? this.birthday,
       lastLoginTime: lastLoginTime ?? this.lastLoginTime,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,

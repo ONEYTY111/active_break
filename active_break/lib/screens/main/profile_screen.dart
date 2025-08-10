@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/user_provider.dart';
@@ -32,7 +33,11 @@ class ProfileScreen extends StatelessWidget {
                         CircleAvatar(
                           radius: 32,
                           backgroundImage: user?.avatarUrl != null
-                              ? NetworkImage(user!.avatarUrl!)
+                              ? (user!.avatarUrl!.startsWith('http')
+                                  ? NetworkImage(user.avatarUrl!)
+                                  : (File(user.avatarUrl!).existsSync()
+                                      ? FileImage(File(user.avatarUrl!))
+                                      : null) as ImageProvider?)
                               : null,
                           child: user?.avatarUrl == null
                               ? Text(
@@ -76,6 +81,26 @@ class ProfileScreen extends StatelessWidget {
                                         color: Theme.of(
                                           context,
                                         ).colorScheme.onSurfaceVariant,
+                                      ),
+                                ),
+                              ],
+                              if (user?.gender != null) ...[
+                                const SizedBox(height: 2),
+                                Text(
+                                  user!.gender == 'male'
+                                      ? AppLocalizations.of(context).translate('male')
+                                      : AppLocalizations.of(context).translate('female'),
+                                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                      ),
+                                ),
+                              ],
+                              if (user?.birthday != null) ...[
+                                const SizedBox(height: 2),
+                                Text(
+                                  '${user!.birthday!.year}-${user.birthday!.month.toString().padLeft(2, '0')}-${user.birthday!.day.toString().padLeft(2, '0')}',
+                                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                        color: Theme.of(context).colorScheme.onSurfaceVariant,
                                       ),
                                 ),
                               ],

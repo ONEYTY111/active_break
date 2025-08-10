@@ -172,6 +172,7 @@ class UserProvider with ChangeNotifier {
     String? phone,
     String? gender,
     String? avatarUrl,
+    DateTime? birthday,
   }) async {
     if (_currentUser == null) return false;
 
@@ -184,6 +185,7 @@ class UserProvider with ChangeNotifier {
         phone: phone ?? _currentUser!.phone,
         gender: gender ?? _currentUser!.gender,
         avatarUrl: avatarUrl ?? _currentUser!.avatarUrl,
+        birthday: birthday ?? _currentUser!.birthday,
         updatedAt: DateTime.now(),
       );
 

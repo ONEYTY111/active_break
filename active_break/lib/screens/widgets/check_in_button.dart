@@ -82,20 +82,22 @@ class _CheckInButtonState extends State<CheckInButton>
               ),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(
                     Icons.check_circle_outline,
                     color: colorScheme.onPrimary,
-                    size: 28,
+                    size: 26,
                   ),
-                  const SizedBox(height: 2),
+                  const SizedBox(height: 1),
                   Text(
                     AppLocalizations.of(context).translate('check_in'),
                     style: TextStyle(
                       color: colorScheme.onPrimary,
-                      fontSize: 10,
+                      fontSize: 9,
                       fontWeight: FontWeight.w600,
                     ),
+                    textAlign: TextAlign.center,
                   ),
                 ],
               ),
