@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../models/reminder_and_tips.dart';
 import '../services/database_service.dart';
 
@@ -35,9 +36,12 @@ class TipsProvider with ChangeNotifier {
 
   Future<void> _generateDailyTips(int userId) async {
     try {
-      // For demo purposes, we'll use predefined tips instead of OpenAI
-      // In a real app, you would integrate with OpenAI API here
-      final tips = await _generateMockTips();
+      List<String> tips;
+      
+      // For now, use mock tips. Users can configure OpenAI API later
+      // To enable OpenAI, uncomment the line below and add your API key
+      // tips = await _generateTipsWithOpenAI(userId, 'your_openai_api_key_here');
+      tips = await _generateMockTips();
       
       final today = DateTime.now();
       for (final tipContent in tips) {
@@ -95,28 +99,29 @@ class TipsProvider with ChangeNotifier {
     }
   }
 
-  // OpenAI integration example (commented out as it requires API key)
-  /*
+  // OpenAI integration implementation
   Future<List<String>> _generateTipsWithOpenAI(int userId) async {
     try {
       // Get user's activity history for personalization
       final recentActivities = await _databaseService.getRecentActivityRecords(userId);
       
       // Build context for OpenAI
-      String context = "Generate 3 personalized health and fitness tips for a user who has been doing: ";
+      String context = "Generate exactly 3 personalized health and fitness tips for a user who has been doing: ";
       if (recentActivities.isNotEmpty) {
         final activities = recentActivities.map((r) => "activity for ${r.durationMinutes} minutes").join(", ");
         context += activities;
       } else {
         context += "no recent activities";
       }
-      context += ". Make the tips practical, motivating, and specific.";
+      context += ". Make the tips practical, motivating, and specific. Return each tip as a separate line starting with a number (1., 2., 3.).";
 
+      final apiKey = dotenv.env['OPENAI_API_KEY'];
+      
       final response = await _dio.post(
         'https://api.openai.com/v1/chat/completions',
         options: Options(
           headers: {
-            'Authorization': 'Bearer YOUR_OPENAI_API_KEY',
+            'Authorization': 'Bearer $apiKey',
             'Content-Type': 'application/json',
           },
         ),
@@ -125,7 +130,7 @@ class TipsProvider with ChangeNotifier {
           'messages': [
             {
               'role': 'system',
-              'content': 'You are a helpful fitness and health coach. Provide practical, actionable health tips.',
+              'content': 'You are a helpful fitness and health coach. Provide practical, actionable health tips. Return exactly 3 tips, each on a new line, numbered 1., 2., 3.',
             },
             {
               'role': 'user',
@@ -146,11 +151,16 @@ class TipsProvider with ChangeNotifier {
           .take(3)
           .toList();
 
+      // Ensure we have exactly 3 tips
+      if (tips.length < 3) {
+        debugPrint('OpenAI returned less than 3 tips, falling back to mock tips');
+        return await _generateMockTips();
+      }
+
       return tips;
     } catch (e) {
       debugPrint('Error generating tips with OpenAI: $e');
-      return _generateMockTips();
+      return await _generateMockTips();
     }
   }
-  */
 }

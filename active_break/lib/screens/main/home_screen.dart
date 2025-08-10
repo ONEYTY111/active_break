@@ -262,8 +262,17 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                         ),
                         title: Text(activity.name),
-                        subtitle: Text(
-                          '${record.durationMinutes} ${AppLocalizations.of(context).translate('minutes')} • ${record.caloriesBurned} ${AppLocalizations.of(context).translate('calories')}',
+                        subtitle: Builder(
+                          builder: (context) {
+                            final start = record.beginTime;
+                            final end = record.endTime;
+                            String two(int n) => n.toString().padLeft(2, '0');
+                            final startStr = '${two(start.hour)}:${two(start.minute)}:${two(start.second)}';
+                            final endStr = '${two(end.hour)}:${two(end.minute)}:${two(end.second)}';
+                            final durationStr = '${record.durationMinutes} ${AppLocalizations.of(context).translate('minutes')}';
+                            final caloriesStr = '${record.caloriesBurned} ${AppLocalizations.of(context).translate('calories')}';
+                            return Text('$startStr - $endStr • $durationStr • $caloriesStr');
+                          },
                         ),
                         trailing: Text(
                           '${record.beginTime.month}/${record.beginTime.day}',
@@ -290,39 +299,49 @@ class _HomeScreenState extends State<HomeScreen> {
               ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 12),
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  children: [
-                    Row(
+            // Listen to ActivityProvider changes and reload weekly data
+            Consumer<ActivityProvider>(
+              builder: (context, activityProvider, child) {
+                // Reload weekly data when activity provider notifies (e.g., after saving a record)
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (mounted) _loadWeeklyData();
+                });
+                
+                return Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
                       children: [
-                        Expanded(
-                          child: _buildSummaryItem(
-                            context,
-                            Icons.timer,
-                            AppLocalizations.of(
-                              context,
-                            ).translate('total_duration'),
-                            '${_getTotalDuration()} ${AppLocalizations.of(context).translate('minutes')}',
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: _buildSummaryItem(
-                            context,
-                            Icons.local_fire_department,
-                            AppLocalizations.of(
-                              context,
-                            ).translate('total_calories'),
-                            '${_getTotalCalories()} ${AppLocalizations.of(context).translate('calories')}',
-                          ),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _buildSummaryItem(
+                                context,
+                                Icons.timer,
+                                AppLocalizations.of(
+                                  context,
+                                ).translate('total_duration'),
+                                '${_getTotalDuration()} ${AppLocalizations.of(context).translate('minutes')}',
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: _buildSummaryItem(
+                                context,
+                                Icons.local_fire_department,
+                                AppLocalizations.of(
+                                  context,
+                                ).translate('total_calories'),
+                                '${_getTotalCalories()} ${AppLocalizations.of(context).translate('calories')}',
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),
-                  ],
-                ),
-              ),
+                  ),
+                );
+              },
             ),
             const SizedBox(height: 24),
 

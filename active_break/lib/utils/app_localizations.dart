@@ -27,6 +27,9 @@ class AppLocalizations {
       'logout': '退出登录',
       'email_or_username': '邮箱或用户名',
       'username': '用户名',
+      'nickname': '昵称',
+      'avatar': '头像',
+      'change_avatar': '更换头像',
       'email': '邮箱',
       'phone': '手机号',
       'password': '密码',
@@ -106,6 +109,7 @@ class AppLocalizations {
       'password_change_failed': '密码修改失败',
       'profile_updated': '资料更新成功',
       'profile_update_failed': '资料更新失败',
+      'birthday': '生日',
       
       // Common
       'cancel': '取消',
@@ -128,6 +132,9 @@ class AppLocalizations {
       'logout': 'Logout',
       'email_or_username': 'Email or Username',
       'username': 'Username',
+      'nickname': 'Nickname',
+      'avatar': 'Avatar',
+      'change_avatar': 'Change Avatar',
       'email': 'Email',
       'phone': 'Phone',
       'password': 'Password',
@@ -207,6 +214,7 @@ class AppLocalizations {
       'password_change_failed': 'Password change failed',
       'profile_updated': 'Profile updated successfully',
       'profile_update_failed': 'Profile update failed',
+      'birthday': 'Birthday',
       
       // Common
       'cancel': 'Cancel',

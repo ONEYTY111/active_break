@@ -80,6 +80,8 @@ class DatabaseService {
           if (kIsWeb) {
             await _createTablesIfNotExist(db);
           }
+          // Run migrations for all platforms
+          await _migrate(db);
         },
       );
       print('Database opened successfully at path: $path');
@@ -108,8 +110,39 @@ class DatabaseService {
     }
   }
 
+
+  Future<void> _migrate(Database db) async {
+    try {
+      // 1) Ensure users table has 'birthday' column
+      final columns = await db.rawQuery("PRAGMA table_info(users)");
+      final hasBirthday = columns.any((col) =>
+          (col['name']?.toString().toLowerCase() ?? '') == 'birthday');
+      if (!hasBirthday) {
+        await db.execute('ALTER TABLE users ADD COLUMN birthday DATE');
+      }
+
+      // 2) Ensure i18n table exists
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS t_physical_activities_i18n (
+          id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+          activity_type_id INTEGER NOT NULL,
+          language_code VARCHAR(10) NOT NULL,
+          name VARCHAR(100) NOT NULL,
+          description TEXT NOT NULL,
+          FOREIGN KEY (activity_type_id) REFERENCES t_physical_activities(activity_type_id),
+          UNIQUE(activity_type_id, language_code)
+        )
+      ''');
+
+      // 3) Seed i18n data
+      await _insertI18nData(db);
+    } catch (e) {
+      debugPrint('Migration error: $e');
+    }
+  }
+
   Future<void> _createTablesIfNotExist(Database db) async {
-    // Create users table
+    // Create users table with birthday field
     await db.execute('''
       CREATE TABLE IF NOT EXISTS users (
         user_id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
@@ -119,6 +152,7 @@ class DatabaseService {
         phone VARCHAR(20),
         gender VARCHAR(10),
         avatar_url TEXT,
+        birthday DATE,
         last_login_time TIMESTAMP,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -163,6 +197,19 @@ class DatabaseService {
         default_duration INTEGER NOT NULL,
         icon_url VARCHAR(255),
         deleted BOOLEAN DEFAULT FALSE
+      )
+    ''');
+
+    // Create i18n physical activities table
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS t_physical_activities_i18n (
+        id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+        activity_type_id INTEGER NOT NULL,
+        language_code VARCHAR(10) NOT NULL,
+        name VARCHAR(100) NOT NULL,
+        description TEXT NOT NULL,
+        FOREIGN KEY (activity_type_id) REFERENCES t_physical_activities(activity_type_id),
+        UNIQUE(activity_type_id, language_code)
       )
     ''');
 
@@ -215,6 +262,41 @@ class DatabaseService {
 
     // Insert default physical activities
     await _insertDefaultActivities(db);
+    
+    // Insert i18n data
+    await _insertI18nData(db);
+  }
+
+  Future<void> _insertI18nData(Database db) async {
+    try {
+      // Insert Chinese activity names
+      await db.execute('''
+        INSERT OR REPLACE INTO t_physical_activities_i18n (activity_type_id, language_code, name, description) VALUES
+        (1, 'zh', '拉伸', '简单的拉伸运动，适合日常锻炼'),
+        (2, 'zh', '跑步', '中等强度的跑步运动，燃烧更多卡路里'),
+        (3, 'zh', '俯卧撑', '上肢力量训练，增强胸肌和手臂力量'),
+        (4, 'zh', '深蹲', '下肢力量训练，增强腿部和臀部肌肉'),
+        (5, 'zh', '平板支撑', '核心力量训练，增强腹部和背部肌肉'),
+        (6, 'zh', '跳绳', '全身有氧运动，提高心肺功能'),
+        (7, 'zh', '仰卧起坐', '腹部肌肉训练，增强核心力量'),
+        (8, 'zh', '开合跳', '全身有氧运动，快速燃烧卡路里')
+      ''');
+
+      // Insert English activity names  
+      await db.execute('''
+        INSERT OR REPLACE INTO t_physical_activities_i18n (activity_type_id, language_code, name, description) VALUES
+        (1, 'en', 'Walking', 'Simple walking exercise, suitable for daily workout'),
+        (2, 'en', 'Running', 'Moderate intensity running exercise, burns more calories'),
+        (3, 'en', 'Push-ups', 'Upper body strength training, strengthens chest and arm muscles'),
+        (4, 'en', 'Squats', 'Lower body strength training, strengthens leg and glute muscles'),
+        (5, 'en', 'Plank', 'Core strength training, strengthens abdominal and back muscles'),
+        (6, 'en', 'Jump Rope', 'Full-body cardio exercise, improves cardiovascular fitness'),
+        (7, 'en', 'Sit-ups', 'Abdominal muscle training, strengthens core strength'),
+        (8, 'en', 'Jumping Jacks', 'Full-body cardio exercise, burns calories quickly')
+      ''');
+    } catch (e) {
+      debugPrint('Error inserting i18n data: $e');
+    }
   }
 
   Future<void> _insertDefaultActivities(Database db) async {

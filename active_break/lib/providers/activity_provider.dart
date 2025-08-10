@@ -40,6 +40,11 @@ class ActivityProvider with ChangeNotifier {
     notifyListeners();
   }
 
+  void setActivities(List<PhysicalActivity> activities) {
+    _activities = activities;
+    notifyListeners();
+  }
+
   Future<void> loadRecentRecords(int userId) async {
     try {
       _recentRecords = await _databaseService.getRecentActivityRecords(userId);
@@ -192,6 +197,9 @@ class ActivityProvider with ChangeNotifier {
       
       // Stop timer
       stopTimer();
+      
+      // Notify listeners with updated weekly data
+      notifyListeners();
       
       return true;
     } catch (e) {
