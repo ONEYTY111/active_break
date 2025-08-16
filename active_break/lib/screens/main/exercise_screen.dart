@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../providers/activity_provider.dart';
 import '../../providers/user_provider.dart';
 import '../../providers/language_provider.dart';
+import '../../providers/achievement_provider.dart';
 import '../../utils/app_localizations.dart';
 import '../../utils/activity_icons.dart';
 import '../../models/physical_activity.dart';
@@ -25,13 +26,22 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
       final activityProvider =
           Provider.of<ActivityProvider>(context, listen: false);
       if (activityProvider.activities.isEmpty) {
+        print('Loading activities - current count: ${activityProvider.activities.length}');
         await activityProvider.loadActivities();
+        print('After loadActivities - count: ${activityProvider.activities.length}');
+        for (final activity in activityProvider.activities) {
+          print('Activity: ID=${activity.activityTypeId}, Name=${activity.name}');
+        }
       }
-      await _loadLocalizedDescriptions();
+      await loadLocalizedDescriptions();
+      print('After localization - count: ${activityProvider.activities.length}');
+      for (final activity in activityProvider.activities) {
+        print('Localized Activity: ID=${activity.activityTypeId}, Name=${activity.name}');
+      }
     });
   }
 
-  Future<void> _loadLocalizedDescriptions() async {
+  Future<void> loadLocalizedDescriptions() async {
     final languageProvider = Provider.of<LanguageProvider>(context, listen: false);
     final activityProvider = Provider.of<ActivityProvider>(context, listen: false);
     final databaseService = DatabaseService();
@@ -76,15 +86,15 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
       appBar: AppBar(
         title: Text(AppLocalizations.of(context).translate('exercise')),
       ),
-      body: Consumer<LanguageProvider>(
-        builder: (context, languageProvider, child) {
-          // Reload descriptions when language changes
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            _loadLocalizedDescriptions();
-          });
-          
-          return Consumer<ActivityProvider>(
+      body: Consumer<ActivityProvider>(
             builder: (context, activityProvider, child) {
+              // 检查是否需要自动完成
+              if (activityProvider.needsAutoComplete) {
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  _autoCompleteActivity(context);
+                });
+              }
+              
               if (activityProvider.isLoading) {
                 return const Center(child: CircularProgressIndicator());
               }
@@ -115,11 +125,12 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
                                     ? Theme.of(context).colorScheme.primary
                                     : ActivityIcons.getColorByActivityType(
                                         activity.activityTypeId!,
-                                      ).withValues(alpha: 0.2),
+                                      ).withValues(alpha: 0.8),
                                 child: Icon(
-                                  ActivityIcons.getIconByActivityType(
-                                    activity.activityTypeId!,
-                                  ),
+                                  // Prefer mapped icon by activity type id; if none, derive by name
+                                  ActivityIcons.activityTypeIcons.containsKey(activity.activityTypeId!)
+                                      ? ActivityIcons.getIconByActivityType(activity.activityTypeId!)
+                                      : ActivityIcons.getFallbackIcon(activity.name),
                                   color: isCurrentActivity
                                       ? Theme.of(context).colorScheme.onPrimary
                                       : ActivityIcons.getColorByActivityType(
@@ -141,6 +152,8 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
                                     Text(
                                       activity.description,
                                       style: Theme.of(context).textTheme.bodyMedium,
+                                      maxLines: null,
+                                      overflow: TextOverflow.visible,
                                     ),
                                   ],
                                 ),
@@ -159,10 +172,19 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
                                   ),
                                   child: Consumer<ActivityProvider>(
                                     builder: (context, provider, _) {
-                                      final duration = provider.elapsedTime;
+                                      // 显示倒计时剩余时间
+                                      final duration = provider.remainingTime;
                                       final hours = duration.inHours;
                                       final minutes = duration.inMinutes % 60;
                                       final seconds = duration.inSeconds % 60;
+                                      
+                                      // 检查是否需要自动完成
+                                      if (provider.needsAutoComplete) {
+                                        WidgetsBinding.instance.addPostFrameCallback((_) {
+                                          _autoCompleteActivity(context);
+                                        });
+                                      }
+                                      
                                       return Text(
                                         '${hours.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}',
                                         style: Theme.of(context)
@@ -283,9 +305,7 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
                 },
               );
             },
-          );
-        },
-      ),
+          ),
     );
   }
 
@@ -327,12 +347,21 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
       context,
       listen: false,
     );
+    final achievementProvider = Provider.of<AchievementProvider>(
+      context,
+      listen: false,
+    );
 
     if (userProvider.currentUser == null) return;
 
     final success = await activityProvider.saveActivityRecord(
       userProvider.currentUser!.userId!,
     );
+    
+    // 如果运动记录保存成功，检查成就
+    if (success) {
+      await achievementProvider.checkAchievementsAfterExercise(context);
+    }
 
     if (mounted) {
       if (success) {
@@ -364,6 +393,31 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
   Future<void> _stopAndSaveActivity(BuildContext context) async {
     // Do not stop timer first; saveActivityRecord will stop it upon success
     await _saveRecord(context);
+  }
+
+  Future<void> _autoCompleteActivity(BuildContext context) async {
+    final activityProvider = Provider.of<ActivityProvider>(context, listen: false);
+    
+    // 清除自动完成标志，避免重复触发
+    activityProvider.clearAutoCompleteFlag();
+    
+    // 自动完成运动并保存记录
+    await _saveRecord(context);
+    
+    // 显示自动完成提示
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            AppLocalizations.of(context).translate('activity_auto_completed'),
+          ),
+          backgroundColor: Colors.green,
+          behavior: SnackBarBehavior.floating,
+          margin: const EdgeInsets.all(16),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        ),
+      );
+    }
   }
 
    void _showReminderSettings(BuildContext context, int activityId) {

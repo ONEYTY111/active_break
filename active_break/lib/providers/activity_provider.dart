@@ -6,18 +6,21 @@ import '../services/database_service.dart';
 
 class ActivityProvider with ChangeNotifier {
   final DatabaseService _databaseService = DatabaseService();
-  
+
   List<PhysicalActivity> _activities = [];
   List<ActivityRecord> _recentRecords = [];
   UserCheckinStreak? _checkinStreak;
   bool _isLoading = false;
-  
+
   // Timer related
   bool _isTimerRunning = false;
   int _currentActivityId = 0;
   DateTime? _timerStartTime;
   Duration _elapsedTime = Duration.zero;
-  
+  Duration _totalDuration = Duration.zero;
+  Duration _remainingTime = Duration.zero;
+  bool _needsAutoComplete = false;
+
   List<PhysicalActivity> get activities => _activities;
   List<ActivityRecord> get recentRecords => _recentRecords;
   UserCheckinStreak? get checkinStreak => _checkinStreak;
@@ -25,23 +28,41 @@ class ActivityProvider with ChangeNotifier {
   bool get isTimerRunning => _isTimerRunning;
   int get currentActivityId => _currentActivityId;
   Duration get elapsedTime => _elapsedTime;
+  Duration get remainingTime => _remainingTime;
+  Duration get totalDuration => _totalDuration;
+  bool get isCountdownFinished => _remainingTime == Duration.zero && _totalDuration > Duration.zero;
+  bool get needsAutoComplete => _needsAutoComplete;
 
   Future<void> loadActivities() async {
     _isLoading = true;
     notifyListeners();
-    
+
     try {
       _activities = await _databaseService.getAllPhysicalActivities();
     } catch (e) {
       debugPrint('Error loading activities: $e');
     }
-    
+
     _isLoading = false;
     notifyListeners();
   }
 
   void setActivities(List<PhysicalActivity> activities) {
     _activities = activities;
+    notifyListeners();
+  }
+
+  Future<void> reloadAllData() async {
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      _activities = await _databaseService.getAllPhysicalActivities();
+    } catch (e) {
+      debugPrint('Error reloading activities: $e');
+    }
+
+    _isLoading = false;
     notifyListeners();
   }
 
@@ -83,7 +104,7 @@ class ActivityProvider with ChangeNotifier {
 
       // Update streak
       await _updateCheckinStreak(userId);
-      
+
       return true;
     } catch (e) {
       debugPrint('Error checking in: $e');
@@ -96,7 +117,7 @@ class ActivityProvider with ChangeNotifier {
       final existing = await _databaseService.getUserCheckinStreak(userId);
       final today = DateTime.now();
       final yesterday = today.subtract(const Duration(days: 1));
-      
+
       if (existing == null) {
         // First check-in
         final newStreak = UserCheckinStreak(
@@ -112,7 +133,7 @@ class ActivityProvider with ChangeNotifier {
       } else {
         final lastCheckinDate = existing.lastCheckinDate;
         int newCurrentStreak;
-        
+
         if (lastCheckinDate.year == yesterday.year &&
             lastCheckinDate.month == yesterday.month &&
             lastCheckinDate.day == yesterday.day) {
@@ -122,11 +143,11 @@ class ActivityProvider with ChangeNotifier {
           // Not consecutive
           newCurrentStreak = 1;
         }
-        
-        final newLongestStreak = newCurrentStreak > existing.longestStreak 
-            ? newCurrentStreak 
+
+        final newLongestStreak = newCurrentStreak > existing.longestStreak
+            ? newCurrentStreak
             : existing.longestStreak;
-        
+
         final updatedStreak = UserCheckinStreak(
           userId: userId,
           currentStreak: newCurrentStreak,
@@ -135,11 +156,11 @@ class ActivityProvider with ChangeNotifier {
           lastCheckinDate: today,
           updatedAt: today,
         );
-        
+
         await _databaseService.insertOrUpdateCheckinStreak(updatedStreak);
         _checkinStreak = updatedStreak;
       }
-      
+
       notifyListeners();
     } catch (e) {
       debugPrint('Error updating checkin streak: $e');
@@ -151,6 +172,15 @@ class ActivityProvider with ChangeNotifier {
     _currentActivityId = activityId;
     _timerStartTime = DateTime.now();
     _elapsedTime = Duration.zero;
+    
+    // 获取活动的默认时长（分钟转换为秒）
+    final activity = _activities.firstWhere(
+      (a) => a.activityTypeId == activityId,
+      orElse: () => throw Exception('Activity not found'),
+    );
+    _totalDuration = Duration(minutes: activity.defaultDuration);
+    _remainingTime = _totalDuration;
+    
     notifyListeners();
   }
 
@@ -159,27 +189,57 @@ class ActivityProvider with ChangeNotifier {
     _currentActivityId = 0;
     _timerStartTime = null;
     _elapsedTime = Duration.zero;
+    _totalDuration = Duration.zero;
+    _remainingTime = Duration.zero;
+    _needsAutoComplete = false;
     notifyListeners();
   }
 
   void updateTimer() {
     if (_isTimerRunning && _timerStartTime != null) {
       _elapsedTime = DateTime.now().difference(_timerStartTime!);
+      _remainingTime = _totalDuration - _elapsedTime;
+      
+      // 如果倒计时结束，自动完成运动
+      if (_remainingTime.isNegative || _remainingTime == Duration.zero) {
+        _remainingTime = Duration.zero;
+        _elapsedTime = _totalDuration;
+        // 标记为需要自动保存
+        _autoCompleteTimer();
+      }
+      
       notifyListeners();
     }
   }
+  
+  void _autoCompleteTimer() {
+    // 标记需要自动完成，ExerciseScreen将监听这个状态
+    _needsAutoComplete = true;
+    _isTimerRunning = false;
+    notifyListeners();
+  }
+  
+  void clearAutoCompleteFlag() {
+    _needsAutoComplete = false;
+    notifyListeners();
+  }
 
   Future<bool> saveActivityRecord(int userId) async {
-    if (!_isTimerRunning || _timerStartTime == null) return false;
+    // 允许在自动完成时保存记录，即使计时器已停止
+    if (_timerStartTime == null || (_currentActivityId == 0 && !_needsAutoComplete)) return false;
 
     try {
       final activity = _activities.firstWhere(
         (a) => a.activityTypeId == _currentActivityId,
       );
-      
+
       final endTime = DateTime.now();
       final durationMinutes = _elapsedTime.inMinutes;
-      final caloriesBurned = (durationMinutes * activity.caloriesPerMinute / 60).round();
+      final caloriesBurned = (durationMinutes * activity.caloriesPerMinute)
+          .round();
+      
+      // Debug print for calorie calculation
+      print('卡路里计算: 时长=${durationMinutes}分钟, 每分钟卡路里=${activity.caloriesPerMinute}, 总卡路里=${caloriesBurned}');
 
       final record = ActivityRecord(
         userId: userId,
@@ -191,16 +251,25 @@ class ActivityProvider with ChangeNotifier {
       );
 
       await _databaseService.insertActivityRecord(record);
-      
+
+      // Debug print for recent records
+      print('保存活动记录后，最近记录数量: ${_recentRecords.length}');
+      for (var record in _recentRecords) {
+        print('  记录: 活动ID=${record.activityTypeId}, 开始时间=${record.beginTime}, 结束时间=${record.endTime}');
+      }
+
       // Reload recent records
       await loadRecentRecords(userId);
-      
+
       // Stop timer
       stopTimer();
       
+      // 清除自动完成标志
+      _needsAutoComplete = false;
+
       // Notify listeners with updated weekly data
       notifyListeners();
-      
+
       return true;
     } catch (e) {
       debugPrint('Error saving activity record: $e');
@@ -220,7 +289,10 @@ class ActivityProvider with ChangeNotifier {
     }
   }
 
-  Future<ReminderSetting?> getReminderSetting(int userId, int activityTypeId) async {
+  Future<ReminderSetting?> getReminderSetting(
+    int userId,
+    int activityTypeId,
+  ) async {
     try {
       return await _databaseService.getReminderSetting(userId, activityTypeId);
     } catch (e) {
@@ -234,7 +306,7 @@ class ActivityProvider with ChangeNotifier {
       final now = DateTime.now();
       final startOfWeek = now.subtract(Duration(days: now.weekday - 1));
       final endOfWeek = startOfWeek.add(const Duration(days: 6));
-      
+
       return await _databaseService.getActivityRecordsByDateRange(
         userId,
         startOfWeek,

@@ -3,7 +3,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:sqflite/sqflite.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import '../models/user.dart';
 import '../models/check_in.dart';
@@ -110,13 +109,13 @@ class DatabaseService {
     }
   }
 
-
   Future<void> _migrate(Database db) async {
     try {
       // 1) Ensure users table has 'birthday' column
       final columns = await db.rawQuery("PRAGMA table_info(users)");
-      final hasBirthday = columns.any((col) =>
-          (col['name']?.toString().toLowerCase() ?? '') == 'birthday');
+      final hasBirthday = columns.any(
+        (col) => (col['name']?.toString().toLowerCase() ?? '') == 'birthday',
+      );
       if (!hasBirthday) {
         await db.execute('ALTER TABLE users ADD COLUMN birthday DATE');
       }
@@ -134,8 +133,62 @@ class DatabaseService {
         )
       ''');
 
-      // 3) Seed i18n data
-      await _insertI18nData(db);
+      // 3) 清理重复的活动数据
+      await _cleanupDuplicateActivities(db);
+      
+      // 4) 确保收藏表存在
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS user_favorites (
+          favorite_id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+          user_id INTEGER NOT NULL,
+          tip_id INTEGER NOT NULL,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          deleted BOOLEAN DEFAULT FALSE,
+          FOREIGN KEY (user_id) REFERENCES users(user_id),
+          FOREIGN KEY (tip_id) REFERENCES user_tips(tip_id),
+          UNIQUE(user_id, tip_id)
+        )
+      ''');
+      
+      // 5) 确保成就表存在
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS achievements (
+          achievement_id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+          name VARCHAR(100) NOT NULL,
+          description TEXT NOT NULL,
+          icon VARCHAR(50) NOT NULL,
+          type VARCHAR(50) NOT NULL,
+          target_value INTEGER NOT NULL,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          deleted BOOLEAN DEFAULT FALSE
+        )
+      ''');
+
+      // 6) 确保用户成就表存在
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS user_achievements (
+          user_achievement_id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+          user_id INTEGER NOT NULL,
+          achievement_id INTEGER NOT NULL,
+          achieved_at TIMESTAMP,
+          current_progress INTEGER DEFAULT 0,
+          is_achieved BOOLEAN DEFAULT FALSE,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          deleted BOOLEAN DEFAULT FALSE,
+          FOREIGN KEY (user_id) REFERENCES users(user_id),
+          FOREIGN KEY (achievement_id) REFERENCES achievements(achievement_id),
+          UNIQUE(user_id, achievement_id)
+        )
+      ''');
+
+      // 7) 插入预定义成就
+      await _insertPredefinedAchievements(db);
+      
+      // 8) 更新运动数据和国际化表（仅在没有数据时插入）
+      await _updateActivitiesAndI18nData(db);
+      
+      debugPrint('数据库迁移完成，运动数据已更新');
     } catch (e) {
       debugPrint('Migration error: $e');
     }
@@ -260,9 +313,23 @@ class DatabaseService {
       )
     ''');
 
+    // Create user favorites table
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS user_favorites (
+        favorite_id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        tip_id INTEGER NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        deleted BOOLEAN DEFAULT FALSE,
+        FOREIGN KEY (user_id) REFERENCES users(user_id),
+        FOREIGN KEY (tip_id) REFERENCES user_tips(tip_id),
+        UNIQUE(user_id, tip_id)
+      )
+    ''');
+
     // Insert default physical activities
     await _insertDefaultActivities(db);
-    
+
     // Insert i18n data
     await _insertI18nData(db);
   }
@@ -272,27 +339,31 @@ class DatabaseService {
       // Insert Chinese activity names
       await db.execute('''
         INSERT OR REPLACE INTO t_physical_activities_i18n (activity_type_id, language_code, name, description) VALUES
-        (1, 'zh', '拉伸', '简单的拉伸运动，适合日常锻炼'),
-        (2, 'zh', '跑步', '中等强度的跑步运动，燃烧更多卡路里'),
-        (3, 'zh', '俯卧撑', '上肢力量训练，增强胸肌和手臂力量'),
-        (4, 'zh', '深蹲', '下肢力量训练，增强腿部和臀部肌肉'),
-        (5, 'zh', '平板支撑', '核心力量训练，增强腹部和背部肌肉'),
-        (6, 'zh', '跳绳', '全身有氧运动，提高心肺功能'),
-        (7, 'zh', '仰卧起坐', '腹部肌肉训练，增强核心力量'),
-        (8, 'zh', '开合跳', '全身有氧运动，快速燃烧卡路里')
+        (1, 'zh', '肩颈拉伸', '缓解肩颈疲劳，改善颈椎健康'),
+        (2, 'zh', '交替抬膝', '提高心率，锻炼腿部肌肉'),
+        (3, 'zh', '跳绳动作', '全身有氧运动，提高协调性'),
+        (4, 'zh', '原地步行', '低强度有氧运动，适合办公室锻炼'),
+        (5, 'zh', '眼睛运动', '缓解眼部疲劳，保护视力健康'),
+        (6, 'zh', '开合跳', '全身有氧运动，快速燃烧卡路里'),
+        (7, 'zh', '腹式呼吸训练', '放松身心，改善呼吸质量'),
+        (8, 'zh', '动态站姿转体', '锻炼腰腹核心，改善脊柱灵活性'),
+        (9, 'zh', '小腿激活', '激活小腿肌肉，促进血液循环'),
+        (10, 'zh', '脊柱调动', '改善脊柱健康，缓解背部僵硬')
       ''');
 
-      // Insert English activity names  
+      // Insert English activity names
       await db.execute('''
         INSERT OR REPLACE INTO t_physical_activities_i18n (activity_type_id, language_code, name, description) VALUES
-        (1, 'en', 'Walking', 'Simple walking exercise, suitable for daily workout'),
-        (2, 'en', 'Running', 'Moderate intensity running exercise, burns more calories'),
-        (3, 'en', 'Push-ups', 'Upper body strength training, strengthens chest and arm muscles'),
-        (4, 'en', 'Squats', 'Lower body strength training, strengthens leg and glute muscles'),
-        (5, 'en', 'Plank', 'Core strength training, strengthens abdominal and back muscles'),
-        (6, 'en', 'Jump Rope', 'Full-body cardio exercise, improves cardiovascular fitness'),
-        (7, 'en', 'Sit-ups', 'Abdominal muscle training, strengthens core strength'),
-        (8, 'en', 'Jumping Jacks', 'Full-body cardio exercise, burns calories quickly')
+        (1, 'en', 'Neck & Shoulder Stretch', 'Relieves neck and shoulder fatigue, improves cervical health'),
+        (2, 'en', 'Alternating Knee Lifts', 'Increases heart rate, exercises leg muscles'),
+        (3, 'en', 'Jump Rope Motion', 'Full-body cardio exercise, improves coordination'),
+        (4, 'en', 'Walking in Place', 'Low-intensity cardio exercise, suitable for office workouts'),
+        (5, 'en', 'Eye Exercises', 'Relieves eye fatigue, protects vision health'),
+        (6, 'en', 'Jumping Jacks', 'Full-body cardio exercise, burns calories quickly'),
+        (7, 'en', 'Diaphragmatic Breathing', 'Relaxes body and mind, improves breathing quality'),
+        (8, 'en', 'Dynamic Standing Torso Twist', 'Exercises core muscles, improves spinal flexibility'),
+        (9, 'en', 'Calf Activation', 'Activates calf muscles, promotes blood circulation'),
+        (10, 'en', 'Spinal Mobility', 'Improves spinal health, relieves back stiffness')
       ''');
     } catch (e) {
       debugPrint('Error inserting i18n data: $e');
@@ -300,58 +371,106 @@ class DatabaseService {
   }
 
   Future<void> _insertDefaultActivities(Database db) async {
+    debugPrint('开始插入默认运动数据...');
     final activities = [
       {
-        'name': '拉伸',
-        'description': '通过拉伸运动提高身体柔韧性，缓解肌肉紧张',
-        'calories_per_minute': 3,
+        'name': '肩颈拉伸',
+        'description': '缓解肩颈疲劳，改善颈椎健康',
+        'calories_per_minute': 2,
+        'default_duration': 10,
+        'icon_url': 'stretch_neck',
+        'deleted': 0,
+      },
+      {
+        'name': '交替抬膝',
+        'description': '提高心率，锻炼腿部肌肉',
+        'calories_per_minute': 6,
         'default_duration': 15,
-        'icon_url': '58718',
+        'icon_url': 'knee_lift',
+        'deleted': 0,
       },
       {
-        'name': '慢跑',
-        'description': '有氧运动，提高心肺功能，燃烧卡路里',
-        'calories_per_minute': 10,
-        'default_duration': 30,
-        'icon_url': '58724',
-      },
-      {
-        'name': '跳绳',
-        'description': '全身有氧运动，提高协调性和心肺功能',
+        'name': '跳绳动作',
+        'description': '全身有氧运动，提高协调性',
         'calories_per_minute': 12,
         'default_duration': 20,
-        'icon_url': '59469',
+        'icon_url': 'jump_rope',
+        'deleted': 0,
       },
       {
-        'name': '步行',
-        'description': '低强度有氧运动，适合所有年龄段',
+        'name': '原地步行',
+        'description': '低强度有氧运动，适合办公室锻炼',
         'calories_per_minute': 4,
-        'default_duration': 45,
-        'icon_url': '58723',
+        'default_duration': 15,
+        'icon_url': 'walking_in_place',
+        'deleted': 0,
       },
       {
-        'name': '单车',
-        'description': '有氧运动，锻炼腿部肌肉，提高心肺功能',
-        'calories_per_minute': 8,
-        'default_duration': 40,
-        'icon_url': '58721',
+        'name': '眼睛运动',
+        'description': '缓解眼部疲劳，保护视力健康',
+        'calories_per_minute': 1,
+        'default_duration': 5,
+        'icon_url': 'eye_exercise',
+        'deleted': 0,
       },
       {
-        'name': '椭圆机',
-        'description': '全身有氧运动，低冲击性，保护关节',
-        'calories_per_minute': 9,
-        'default_duration': 35,
-        'icon_url': '57735',
+        'name': '开合跳',
+        'description': '全身有氧运动，快速燃烧卡路里',
+        'calories_per_minute': 10,
+        'default_duration': 10,
+        'icon_url': 'jumping_jacks',
+        'deleted': 0,
+      },
+      {
+        'name': '腹式呼吸训练',
+        'description': '放松身心，改善呼吸质量',
+        'calories_per_minute': 1,
+        'default_duration': 8,
+        'icon_url': 'breathing',
+        'deleted': 0,
+      },
+      {
+        'name': '动态站姿转体',
+        'description': '锻炼腰腹核心，改善脊柱灵活性',
+        'calories_per_minute': 3,
+        'default_duration': 12,
+        'icon_url': 'torso_twist',
+        'deleted': 0,
+      },
+      {
+        'name': '小腿激活',
+        'description': '激活小腿肌肉，促进血液循环',
+        'calories_per_minute': 2,
+        'default_duration': 8,
+        'icon_url': 'calf_raise',
+        'deleted': 0,
+      },
+      {
+        'name': '脊柱调动',
+        'description': '改善脊柱健康，缓解背部僵硬',
+        'calories_per_minute': 2,
+        'default_duration': 10,
+        'icon_url': 'spine_mobility',
+        'deleted': 0,
       },
     ];
 
     for (final activity in activities) {
-      await db.insert(
-        't_physical_activities',
-        activity,
-        conflictAlgorithm: ConflictAlgorithm.ignore,
-      );
+      try {
+        final result = await db.insert(
+          't_physical_activities',
+          activity,
+          conflictAlgorithm: ConflictAlgorithm.replace,
+        );
+        debugPrint('插入运动数据: ${activity['name']}, ID: $result');
+      } catch (e) {
+        debugPrint('插入运动数据失败: ${activity['name']}, 错误: $e');
+      }
     }
+    
+    // 验证插入结果
+    final count = await db.rawQuery('SELECT COUNT(*) as count FROM t_physical_activities');
+    debugPrint('运动数据插入完成，总数: ${count.first['count']}');
   }
 
   // User operations
@@ -486,6 +605,7 @@ class DatabaseService {
       't_physical_activities',
       where: 'deleted = ?',
       whereArgs: [0],
+      orderBy: 'activity_type_id ASC',
     );
 
     return List.generate(maps.length, (i) {
@@ -622,6 +742,296 @@ class DatabaseService {
     return List.generate(maps.length, (i) {
       return UserTip.fromMap(maps[i]);
     });
+  }
+
+  // 更新运动数据和国际化表（内部方法）
+  Future<void> _updateActivitiesAndI18nData(Database db) async {
+    try {
+      // 检查是否已有活动数据
+      final existingActivities = await db.rawQuery(
+        'SELECT COUNT(*) as count FROM t_physical_activities WHERE deleted = 0'
+      );
+      final activityCount = existingActivities.first['count'] as int;
+      
+      if (activityCount == 0) {
+        // 只有在没有活动数据时才插入
+        debugPrint('数据库中没有活动数据，开始插入默认数据...');
+        await _insertDefaultActivities(db);
+        await _insertI18nData(db);
+        debugPrint('默认运动数据和国际化表已插入');
+      } else {
+        debugPrint('数据库中已有 $activityCount 条活动数据，跳过插入');
+      }
+    } catch (e) {
+      debugPrint('检查或插入运动数据时出错: $e');
+    }
+  }
+  
+  // 公开的更新方法
+  Future<void> updateActivitiesData() async {
+    final db = await database;
+    await _updateActivitiesAndI18nData(db);
+  }
+  
+  // 清理重复的活动数据，只保留最新的10条（内部方法）
+  Future<void> _cleanupDuplicateActivities(Database db) async {
+    try {
+      // 获取所有活动数据，按ID降序排列
+      final activities = await db.rawQuery(
+        'SELECT * FROM t_physical_activities WHERE deleted = 0 ORDER BY activity_type_id DESC'
+      );
+      
+      if (activities.length > 10) {
+        // 保留最新的10条，删除其他的
+        final keepIds = activities.take(10).map((a) => a['activity_type_id']).toList();
+        final keepIdsStr = keepIds.join(',');
+        
+        await db.execute(
+          'UPDATE t_physical_activities SET deleted = 1 WHERE activity_type_id NOT IN ($keepIdsStr)'
+        );
+        
+        // 同时清理对应的国际化数据
+        await db.execute(
+          'DELETE FROM t_physical_activities_i18n WHERE activity_type_id NOT IN ($keepIdsStr)'
+        );
+        
+        debugPrint('已清理重复活动数据，保留最新的10条');
+      } else {
+        debugPrint('活动数据数量正常，无需清理');
+      }
+    } catch (e) {
+      debugPrint('清理重复活动数据时出错: $e');
+    }
+  }
+  
+  // 清理重复的活动数据，只保留最新的10条（公开方法）
+  Future<void> cleanupDuplicateActivities() async {
+    final db = await database;
+    await _cleanupDuplicateActivities(db);
+  }
+
+  Future<bool> overwriteDatabaseFromAsset({bool backup = true}) async {
+    try {
+      if (kIsWeb) {
+        debugPrint('Web platform does not support overwriting database file from assets.');
+        return false;
+      }
+
+      // Resolve database path in app documents directory
+      final documentsDirectory = await getApplicationDocumentsDirectory();
+      final dbPath = join(documentsDirectory.path, 'reminder.db');
+
+      // Close current db connection if opened
+      if (_database != null) {
+        await _database!.close();
+        _database = null;
+      }
+
+      // Optional: backup existing db file
+      final file = File(dbPath);
+      if (backup && await file.exists()) {
+        final backupPath = join(
+          dirname(dbPath),
+          'reminder_backup_${DateTime.now().millisecondsSinceEpoch}.db',
+        );
+        await file.copy(backupPath);
+        debugPrint('Database backed up to: $backupPath');
+      }
+
+      // Copy asset db to target path (overwrite)
+      final data = await rootBundle.load('assets/database/reminder.db');
+      final bytes = data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes);
+      await File(dbPath).writeAsBytes(bytes, flush: true);
+      debugPrint('Database overwritten from assets to: $dbPath');
+
+      // Reopen database via our standard initializer
+      await database;
+      return true;
+    } catch (e) {
+      debugPrint('Error overwriting database from asset: $e');
+      return false;
+    }
+  }
+
+  // Favorites related methods
+  Future<void> addToFavorites(int userId, int tipId) async {
+    final db = await database;
+    await db.insert(
+      'user_favorites',
+      {
+        'user_id': userId,
+        'tip_id': tipId,
+        'created_at': DateTime.now().toIso8601String(),
+        'deleted': 0,
+      },
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+  }
+
+  Future<void> removeFromFavorites(int userId, int tipId) async {
+    final db = await database;
+    await db.update(
+      'user_favorites',
+      {'deleted': 1},
+      where: 'user_id = ? AND tip_id = ?',
+      whereArgs: [userId, tipId],
+    );
+  }
+
+  // 插入预定义成就
+  Future<void> _insertPredefinedAchievements(Database db) async {
+    try {
+      // 检查是否已经有成就数据
+      final count = await db.rawQuery('SELECT COUNT(*) as count FROM achievements');
+      final achievementCount = count.first['count'] as int;
+      
+      if (achievementCount == 0) {
+        // 插入预定义成就
+        final achievements = [
+          {
+            'name': '初来乍到',
+            'description': '完成第一次打卡',
+            'icon': '🎉',
+            'type': 'checkin_count',
+            'target_value': 1,
+          },
+          {
+            'name': '坚持一周',
+            'description': '连续打卡7天',
+            'icon': '🔥',
+            'type': 'checkin_streak',
+            'target_value': 7,
+          },
+          {
+            'name': '月度达人',
+            'description': '连续打卡30天',
+            'icon': '🏆',
+            'type': 'checkin_streak',
+            'target_value': 30,
+          },
+          {
+            'name': '运动新手',
+            'description': '完成第一次运动',
+            'icon': '💪',
+            'type': 'exercise_count',
+            'target_value': 1,
+          },
+          {
+            'name': '运动达人',
+            'description': '连续运动7天',
+            'icon': '🏃',
+            'type': 'exercise_streak',
+            'target_value': 7,
+          },
+          {
+            'name': '卡路里杀手',
+            'description': '累计消耗1000卡路里',
+            'icon': '🔥',
+            'type': 'calories_burned',
+            'target_value': 1000,
+          },
+          {
+            'name': '时间管理大师',
+            'description': '累计运动时间达到10小时',
+            'icon': '⏰',
+            'type': 'exercise_duration',
+            'target_value': 600, // 10小时 = 600分钟
+          },
+        ];
+        
+        for (final achievement in achievements) {
+          await db.insert('achievements', achievement);
+        }
+        
+        debugPrint('预定义成就插入完成，共插入 ${achievements.length} 个成就');
+      } else {
+        debugPrint('成就数据已存在，跳过插入');
+      }
+    } catch (e) {
+      debugPrint('插入预定义成就时出错: $e');
+    }
+  }
+
+  // 成就相关方法
+  Future<List<Map<String, dynamic>>> getAllAchievements() async {
+    final db = await database;
+    return await db.query(
+      'achievements',
+      where: 'deleted = ?',
+      whereArgs: [0],
+      orderBy: 'achievement_id ASC',
+    );
+  }
+
+  Future<List<Map<String, dynamic>>> getUserAchievements(int userId) async {
+    final db = await database;
+    return await db.rawQuery('''
+      SELECT a.*, ua.is_achieved, ua.current_progress, ua.achieved_at
+      FROM achievements a
+      LEFT JOIN user_achievements ua ON a.achievement_id = ua.achievement_id AND ua.user_id = ? AND ua.deleted = 0
+      WHERE a.deleted = 0
+      ORDER BY a.achievement_id ASC
+    ''', [userId]);
+  }
+
+  Future<void> updateUserAchievement(int userId, int achievementId, int progress, bool isAchieved) async {
+    final db = await database;
+    
+    final existing = await db.query(
+      'user_achievements',
+      where: 'user_id = ? AND achievement_id = ? AND deleted = 0',
+      whereArgs: [userId, achievementId],
+    );
+    
+    final data = <String, Object?>{
+      'current_progress': progress,
+      'is_achieved': isAchieved ? 1 : 0,
+      'updated_at': DateTime.now().toIso8601String(),
+    };
+    
+    if (isAchieved) {
+      data['achieved_at'] = DateTime.now().toIso8601String();
+    } else {
+      data['achieved_at'] = null; // 明确设置为null
+    }
+    
+    if (existing.isEmpty) {
+      // 创建新记录
+      data['user_id'] = userId;
+      data['achievement_id'] = achievementId;
+      data['created_at'] = DateTime.now().toIso8601String();
+      await db.insert('user_achievements', data);
+    } else {
+      // 更新现有记录
+      await db.update(
+        'user_achievements',
+        data,
+        where: 'user_id = ? AND achievement_id = ? AND deleted = 0',
+        whereArgs: [userId, achievementId],
+      );
+    }
+  }
+
+  Future<bool> isFavorite(int userId, int tipId) async {
+    final db = await database;
+    final result = await db.query(
+      'user_favorites',
+      where: 'user_id = ? AND tip_id = ? AND deleted = 0',
+      whereArgs: [userId, tipId],
+    );
+    return result.isNotEmpty;
+  }
+
+  Future<List<UserTip>> getUserFavorites(int userId) async {
+    final db = await database;
+    final result = await db.rawQuery('''
+      SELECT ut.* FROM user_tips ut
+      INNER JOIN user_favorites uf ON ut.tip_id = uf.tip_id
+      WHERE uf.user_id = ? AND uf.deleted = 0 AND ut.deleted = 0
+      ORDER BY uf.created_at DESC
+    ''', [userId]);
+    
+    return result.map((map) => UserTip.fromMap(map)).toList();
   }
 
   Future<void> close() async {

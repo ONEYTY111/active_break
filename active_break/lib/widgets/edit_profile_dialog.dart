@@ -34,7 +34,7 @@ class _EditProfileDialogState extends State<EditProfileDialog> {
     super.initState();
     final userProvider = Provider.of<UserProvider>(context, listen: false);
     final user = userProvider.currentUser;
-    
+
     _usernameController = TextEditingController(text: user?.username ?? '');
     _phoneController = TextEditingController(text: user?.phone ?? '');
     _selectedGender = user?.gender;
@@ -51,7 +51,8 @@ class _EditProfileDialogState extends State<EditProfileDialog> {
 
   Future<void> _pickBirthday() async {
     final now = DateTime.now();
-    final initialDate = _selectedBirthday ?? DateTime(now.year - 20, now.month, now.day);
+    final initialDate =
+        _selectedBirthday ?? DateTime(now.year - 20, now.month, now.day);
     final firstDate = DateTime(1900);
     final lastDate = now;
 
@@ -73,7 +74,8 @@ class _EditProfileDialogState extends State<EditProfileDialog> {
     try {
       XFile? image;
       // On desktop/web, use file_selector; on mobile, use image_picker
-      if (kIsWeb || defaultTargetPlatform == TargetPlatform.macOS ||
+      if (kIsWeb ||
+          defaultTargetPlatform == TargetPlatform.macOS ||
           defaultTargetPlatform == TargetPlatform.windows ||
           defaultTargetPlatform == TargetPlatform.linux) {
         final typeGroup = const fs.XTypeGroup(
@@ -99,7 +101,11 @@ class _EditProfileDialogState extends State<EditProfileDialog> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('${AppLocalizations.of(context).translate('error')}: $e')),
+        SnackBar(
+          content: Text(
+            '${AppLocalizations.of(context).translate('error')}: $e',
+          ),
+        ),
       );
     }
   }
@@ -112,8 +118,9 @@ class _EditProfileDialogState extends State<EditProfileDialog> {
         await avatarsDir.create(recursive: true);
       }
       final ext = p.extension(image.path);
-      final fileName = userId != null ? 'user_${userId}_${DateTime.now().millisecondsSinceEpoch}$ext' :
-        'user_${DateTime.now().millisecondsSinceEpoch}$ext';
+      final fileName = userId != null
+          ? 'user_${userId}_${DateTime.now().millisecondsSinceEpoch}$ext'
+          : 'user_${DateTime.now().millisecondsSinceEpoch}$ext';
       final targetPath = p.join(avatarsDir.path, fileName);
       await File(image.path).copy(targetPath);
       return targetPath;
@@ -132,12 +139,17 @@ class _EditProfileDialogState extends State<EditProfileDialog> {
 
       String? avatarToSave = _avatarPath;
       if (_pickedImage != null) {
-        avatarToSave = await _persistPickedImage(_pickedImage!, userProvider.currentUser?.userId);
+        avatarToSave = await _persistPickedImage(
+          _pickedImage!,
+          userProvider.currentUser?.userId,
+        );
       }
-      
+
       final success = await userProvider.updateProfile(
         username: _usernameController.text.trim(),
-        phone: _phoneController.text.trim().isEmpty ? null : _phoneController.text.trim(),
+        phone: _phoneController.text.trim().isEmpty
+            ? null
+            : _phoneController.text.trim(),
         gender: _selectedGender,
         birthday: _selectedBirthday,
         avatarUrl: avatarToSave,
@@ -152,14 +164,18 @@ class _EditProfileDialogState extends State<EditProfileDialog> {
           Navigator.of(context).pop();
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(AppLocalizations.of(context).translate('profile_updated')),
+              content: Text(
+                AppLocalizations.of(context).translate('profile_updated'),
+              ),
               backgroundColor: Colors.green,
             ),
           );
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(AppLocalizations.of(context).translate('profile_update_failed')),
+              content: Text(
+                AppLocalizations.of(context).translate('profile_update_failed'),
+              ),
               backgroundColor: Colors.red,
             ),
           );
@@ -237,10 +253,14 @@ class _EditProfileDialogState extends State<EditProfileDialog> {
                 ),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
-                    return AppLocalizations.of(context).translate('field_required');
+                    return AppLocalizations.of(
+                      context,
+                    ).translate('field_required');
                   }
                   if (value.length < 3) {
-                    return AppLocalizations.of(context).translate('username_too_short');
+                    return AppLocalizations.of(
+                      context,
+                    ).translate('username_too_short');
                   }
                   return null;
                 },
@@ -251,7 +271,8 @@ class _EditProfileDialogState extends State<EditProfileDialog> {
               TextFormField(
                 controller: _phoneController,
                 decoration: InputDecoration(
-                  labelText: '${AppLocalizations.of(context).translate('phone')} (${AppLocalizations.of(context).translate('optional')})',
+                  labelText:
+                      '${AppLocalizations.of(context).translate('phone')} (${AppLocalizations.of(context).translate('optional')})',
                   prefixIcon: const Icon(Icons.phone),
                 ),
                 keyboardType: TextInputType.phone,
@@ -262,7 +283,8 @@ class _EditProfileDialogState extends State<EditProfileDialog> {
               DropdownButtonFormField<String>(
                 value: _selectedGender,
                 decoration: InputDecoration(
-                  labelText: '${AppLocalizations.of(context).translate('gender')} (${AppLocalizations.of(context).translate('optional')})',
+                  labelText:
+                      '${AppLocalizations.of(context).translate('gender')} (${AppLocalizations.of(context).translate('optional')})',
                   prefixIcon: const Icon(Icons.person_outline),
                 ),
                 items: [
@@ -272,7 +294,9 @@ class _EditProfileDialogState extends State<EditProfileDialog> {
                   ),
                   DropdownMenuItem(
                     value: 'female',
-                    child: Text(AppLocalizations.of(context).translate('female')),
+                    child: Text(
+                      AppLocalizations.of(context).translate('female'),
+                    ),
                   ),
                 ],
                 onChanged: (value) {
@@ -288,7 +312,8 @@ class _EditProfileDialogState extends State<EditProfileDialog> {
                 onTap: _pickBirthday,
                 child: InputDecorator(
                   decoration: InputDecoration(
-                    labelText: '${AppLocalizations.of(context).translate('birthday')}${' (' + AppLocalizations.of(context).translate('optional') + ')'}',
+                    labelText:
+                        '${AppLocalizations.of(context).translate('birthday')}${' (${AppLocalizations.of(context).translate('optional')})'}',
                     prefixIcon: const Icon(Icons.cake_outlined),
                   ),
                   child: Row(

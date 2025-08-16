@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../utils/app_localizations.dart';
 import '../../providers/tips_provider.dart';
 import '../../providers/user_provider.dart';
+import '../../providers/favorites_provider.dart';
+import '../../models/reminder_and_tips.dart';
+import '../../utils/app_localizations.dart';
 
 class RecommendScreen extends StatefulWidget {
   const RecommendScreen({super.key});
@@ -24,9 +26,15 @@ class _RecommendScreenState extends State<RecommendScreen> {
   Future<void> _loadTips() async {
     final userProvider = Provider.of<UserProvider>(context, listen: false);
     final tipsProvider = Provider.of<TipsProvider>(context, listen: false);
+    final favoritesProvider = Provider.of<FavoritesProvider>(context, listen: false);
 
     if (userProvider.currentUser != null) {
       await tipsProvider.loadTodayTips(userProvider.currentUser!.userId!);
+      // Load favorite status for today's tips
+      await favoritesProvider.loadFavoriteStatus(
+        userProvider.currentUser!.userId!,
+        tipsProvider.todayTips,
+      );
     }
   }
 
@@ -104,28 +112,32 @@ class _RecommendScreenState extends State<RecommendScreen> {
                   );
                 }
 
-                return Column(
-                  children: tipsProvider.todayTips.asMap().entries.map((entry) {
-                    final index = entry.key;
-                    final tip = entry.value;
-                    final colors = [Colors.blue, Colors.green, Colors.purple];
-                    final icons = [Icons.lightbulb, Icons.favorite, Icons.star];
+                return Consumer<FavoritesProvider>(
+                  builder: (context, favoritesProvider, child) {
+                    return Column(
+                      children: tipsProvider.todayTips.asMap().entries.map((entry) {
+                        final index = entry.key;
+                        final tip = entry.value;
+                        final colors = [Colors.blue, Colors.green, Colors.purple];
+                        final icons = [Icons.lightbulb, Icons.favorite, Icons.star];
 
-                    return Padding(
-                      padding: EdgeInsets.only(
-                        bottom: index < tipsProvider.todayTips.length - 1
-                            ? 12
-                            : 0,
-                      ),
-                      child: _buildTipCard(
-                        context,
-                        'Health Tip ${index + 1}',
-                        tip.content,
-                        icons[index % icons.length],
-                        colors[index % colors.length],
-                      ),
+                        return Padding(
+                          padding: EdgeInsets.only(
+                            bottom: index < tipsProvider.todayTips.length - 1
+                                ? 12
+                                : 0,
+                          ),
+                          child: _buildTipCard(
+                            context,
+                            'Health Tip ${index + 1}',
+                            tip,
+                            icons[index % icons.length],
+                            colors[index % colors.length],
+                          ),
+                        );
+                      }).toList(),
                     );
-                  }).toList(),
+                  },
                 );
               },
             ),
@@ -138,10 +150,13 @@ class _RecommendScreenState extends State<RecommendScreen> {
   Widget _buildTipCard(
     BuildContext context,
     String title,
-    String content,
+    UserTip tip,
     IconData icon,
     Color color,
   ) {
+    final userProvider = Provider.of<UserProvider>(context, listen: false);
+    final favoritesProvider = Provider.of<FavoritesProvider>(context);
+    
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -169,7 +184,7 @@ class _RecommendScreenState extends State<RecommendScreen> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    content,
+                    tip.content,
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
@@ -177,6 +192,29 @@ class _RecommendScreenState extends State<RecommendScreen> {
                 ],
               ),
             ),
+            // Favorite button
+            if (tip.tipId != null)
+              IconButton(
+                onPressed: () {
+                  if (userProvider.currentUser?.userId != null) {
+                    favoritesProvider.toggleFavorite(
+                      userProvider.currentUser!.userId!,
+                      tip,
+                    );
+                  }
+                },
+                tooltip: favoritesProvider.isFavorite(tip.tipId!) 
+                    ? AppLocalizations.of(context).translate('remove_from_favorites')
+                    : AppLocalizations.of(context).translate('add_to_favorites'),
+                icon: Icon(
+                  favoritesProvider.isFavorite(tip.tipId!)
+                      ? Icons.favorite
+                      : Icons.favorite_border,
+                  color: favoritesProvider.isFavorite(tip.tipId!)
+                      ? Colors.red
+                      : Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+              ),
           ],
         ),
       ),
