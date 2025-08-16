@@ -7,8 +7,11 @@ import 'providers/theme_provider.dart';
 import 'providers/language_provider.dart';
 import 'providers/activity_provider.dart';
 import 'providers/tips_provider.dart';
+import 'providers/favorites_provider.dart';
+import 'providers/achievement_provider.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/main/main_screen.dart';
+import 'screens/favorites_screen.dart';
 import 'utils/app_localizations.dart';
 
 Future<void> main() async {
@@ -29,6 +32,8 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => UserProvider()),
         ChangeNotifierProvider(create: (_) => ActivityProvider()),
         ChangeNotifierProvider(create: (_) => TipsProvider()),
+        ChangeNotifierProvider(create: (_) => FavoritesProvider()),
+        ChangeNotifierProvider(create: (_) => AchievementProvider()),
       ],
       child: Consumer2<ThemeProvider, LanguageProvider>(
         builder: (context, themeProvider, languageProvider, child) {
@@ -47,14 +52,20 @@ class MyApp extends StatelessWidget {
             supportedLocales: AppLocalizations.supportedLocales,
             home: Consumer<UserProvider>(
               builder: (context, userProvider, child) {
-                return userProvider.isLoggedIn
-                    ? const MainScreen()
-                    : const LoginScreen();
+                print('=== Main Consumer: isLoggedIn = ${userProvider.isLoggedIn} ===');
+                if (userProvider.isLoggedIn) {
+                   print('=== Main Consumer: 返回 MainScreen ===');
+                   return MainScreen(key: ValueKey('main_${userProvider.currentUser?.userId}'));
+                 } else {
+                  print('=== Main Consumer: 返回 LoginScreen ===');
+                  return const LoginScreen();
+                }
               },
             ),
             routes: {
               '/login': (context) => const LoginScreen(),
               '/main': (context) => const MainScreen(),
+              '/favorites': (context) => const FavoritesScreen(),
             },
           );
         },

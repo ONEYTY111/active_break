@@ -1,12 +1,19 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/user_provider.dart';
 import '../../providers/theme_provider.dart';
 import '../../providers/language_provider.dart';
+import '../../providers/activity_provider.dart';
+import '../../providers/achievement_provider.dart';
 import '../../utils/app_localizations.dart';
 import '../../widgets/edit_profile_dialog.dart';
 import '../../widgets/change_password_dialog.dart';
+import '../../services/database_service.dart';
+import '../../models/physical_activity.dart';
+import '../achievements/achievements_screen.dart';
+
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -182,6 +189,53 @@ class ProfileScreen extends StatelessWidget {
             ),
             const SizedBox(height: 8),
 
+            // My Favorites
+            Card(
+              child: ListTile(
+                leading: const Icon(Icons.favorite),
+                title: Text(
+                  AppLocalizations.of(context).translate('my_favorites'),
+                ),
+                subtitle: Text(
+                  AppLocalizations.of(context).translate('view_favorite_tips'),
+                ),
+                trailing: const Icon(Icons.arrow_forward_ios),
+                onTap: () {
+                  Navigator.pushNamed(context, '/favorites');
+                },
+              ),
+            ),
+            const SizedBox(height: 8),
+
+            // My Achievements
+            Card(
+              child: Consumer<AchievementProvider>(
+                builder: (context, achievementProvider, child) {
+                  return ListTile(
+                    leading: const Icon(Icons.emoji_events, color: Colors.amber),
+                    title: Text(
+                      AppLocalizations.of(context).translate('my_achievements'),
+                    ),
+                    subtitle: Text(
+                      '${achievementProvider.achievedAchievements.length}/${achievementProvider.allAchievements.length} ${AppLocalizations.of(context).translate('completed')}',
+                    ),
+                    trailing: const Icon(Icons.arrow_forward_ios),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const AchievementsScreen(),
+                        ),
+                      );
+                    },
+                  );
+                },
+              ),
+            ),
+            const SizedBox(height: 8),
+
+
+
             // Change password
             Card(
               child: ListTile(
@@ -193,6 +247,7 @@ class ProfileScreen extends StatelessWidget {
                 onTap: () => _showChangePasswordDialog(context),
               ),
             ),
+
             const SizedBox(height: 24),
 
             // Logout button

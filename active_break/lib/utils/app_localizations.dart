@@ -71,6 +71,7 @@ class AppLocalizations {
       'duration': '时长',
       'save_record': '保存记录',
       'record_saved': '运动记录已保存',
+      'activity_auto_completed': '运动时间到，已自动完成！',
       
       // Reminder
       'reminder_settings': '提醒设置',
@@ -82,10 +83,13 @@ class AppLocalizations {
       'reminder_saved': '提醒设置已保存',
       
       // Check-in
-      'check_in_success': '打卡成功！',
-      'consecutive_days': '连续打卡',
+      'check_in_success': '恭喜你完成打卡！',
+      'check_in_congratulations': '太棒了！',
+      'consecutive_days': '连续天数',
       'days': '天',
-      'already_checked_in': '今日已打卡',
+      'already_checked_in': '今天已经打过卡了',
+      'keep_it_up': '继续保持！',
+      'already_checked_in_subtitle': '今天已经完成打卡了，明天再来吧！',
       
       // Recommend
       'daily_tips': '每日健康建议',
@@ -110,7 +114,38 @@ class AppLocalizations {
       'profile_updated': '资料更新成功',
       'profile_update_failed': '资料更新失败',
       'birthday': '生日',
-      
+
+      // Favorites
+      'my_favorites': '我的收藏',
+      'favorites': '收藏',
+      'add_to_favorites': '添加到收藏',
+      'remove_from_favorites': '取消收藏',
+      'no_favorites': '暂无收藏内容',
+      'no_favorites_subtitle': '收藏你喜欢的健康建议，方便随时查看',
+
+      // Achievements
+      'achievements': '成就',
+      'my_achievements': '我的成就',
+      'achievement_progress': '成就进度',
+      'completed_achievements': '已达成',
+      'uncompleted_achievements': '未达成',
+      'achievement_unlocked': '成就解锁！',
+      'achievement_completed': '成就达成',
+      'no_achievements': '暂无成就',
+      'no_achievements_subtitle': '完成运动和打卡来解锁成就吧！',
+      'achievement_description': '成就描述',
+      'achievement_reward': '成就奖励',
+      'progress': '进度',
+      'completed': '已完成',
+      'in_progress': '进行中',
+      'locked': '未解锁',
+      'total': '总计',
+      'completion_rate': '完成率',
+      'no_achievements_yet': '暂无成就',
+      'retry': '重试',
+      'achievement_unlocked': '成就解锁！',
+      'congratulations_achievement': '恭喜你达成了新成就！',
+
       // Common
       'cancel': '取消',
       'confirm': '确认',
@@ -176,6 +211,7 @@ class AppLocalizations {
       'duration': 'Duration',
       'save_record': 'Save Record',
       'record_saved': 'Activity record saved',
+      'activity_auto_completed': 'Time\'s up! Activity completed automatically!',
       
       // Reminder
       'reminder_settings': 'Reminder Settings',
@@ -187,10 +223,13 @@ class AppLocalizations {
       'reminder_saved': 'Reminder settings saved',
       
       // Check-in
-      'check_in_success': 'Check-in successful!',
+      'check_in_success': 'Congratulations on your check-in!',
+      'check_in_congratulations': 'Awesome!',
       'consecutive_days': 'Consecutive days',
       'days': 'days',
       'already_checked_in': 'Already checked in today',
+      'keep_it_up': 'Keep it up!',
+      'already_checked_in_subtitle': 'You have already checked in today, come back tomorrow!',
       
       // Recommend
       'daily_tips': 'Daily Health Tips',
@@ -215,7 +254,38 @@ class AppLocalizations {
       'profile_updated': 'Profile updated successfully',
       'profile_update_failed': 'Profile update failed',
       'birthday': 'Birthday',
-      
+
+      // Favorites
+      'my_favorites': 'My Favorites',
+      'favorites': 'Favorites',
+      'add_to_favorites': 'Add to Favorites',
+      'remove_from_favorites': 'Remove from Favorites',
+      'no_favorites': 'No favorites yet',
+      'no_favorites_subtitle': 'Save your favorite health tips for easy access',
+
+      // Achievements
+      'achievements': 'Achievements',
+      'my_achievements': 'My Achievements',
+      'achievement_progress': 'Achievement Progress',
+      'completed_achievements': 'Completed',
+      'uncompleted_achievements': 'Uncompleted',
+      'achievement_unlocked': 'Achievement Unlocked!',
+      'achievement_completed': 'Achievement Completed',
+      'no_achievements': 'No achievements yet',
+      'no_achievements_subtitle': 'Complete exercises and check-ins to unlock achievements!',
+      'achievement_description': 'Achievement Description',
+      'achievement_reward': 'Achievement Reward',
+      'progress': 'Progress',
+      'completed': 'Completed',
+      'in_progress': 'In Progress',
+      'locked': 'Locked',
+      'total': 'Total',
+      'completion_rate': 'Completion Rate',
+      'no_achievements_yet': 'No achievements yet',
+      'retry': 'Retry',
+      'achievement_unlocked': 'Achievement Unlocked!',
+      'congratulations_achievement': 'Congratulations on your new achievement!',
+
       // Common
       'cancel': 'Cancel',
       'confirm': 'Confirm',
