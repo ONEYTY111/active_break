@@ -58,14 +58,16 @@ class AchievementProvider with ChangeNotifier {
   }
 
   /// 加载用户成就
-  Future<void> loadUserAchievements() async {
+  Future<void> loadUserAchievements([String? languageCode]) async {
     try {
       _setLoading(true);
       _setError(null);
       
       final currentUser = _userProvider?.currentUser;
       if (currentUser != null) {
-        _userAchievements = await _achievementService.getUserAchievements(currentUser.userId!);
+        // 如果没有提供语言代码，使用默认的中文
+        final langCode = languageCode ?? 'zh';
+        _userAchievements = await _achievementService.getUserAchievements(currentUser.userId!, langCode);
         
         // 对成就进行排序：已完成的在前面，未完成的在后面
         _userAchievements.sort((a, b) {

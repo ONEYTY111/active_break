@@ -314,6 +314,37 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
       context,
       listen: false,
     );
+    
+    // 检查是否已有运动在进行中
+    if (activityProvider.isTimerRunning) {
+      // 获取当前正在进行的运动名称
+      final currentActivity = activityProvider.activities.firstWhere(
+         (activity) => activity.activityTypeId == activityProvider.currentActivityId,
+         orElse: () => PhysicalActivity(
+           activityTypeId: 0,
+           name: '未知运动',
+           description: '',
+           caloriesPerMinute: 0,
+           defaultDuration: 0,
+           iconUrl: '',
+         ),
+       );
+      
+      // 显示提示信息
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            '已经在进行${currentActivity.name}了，请先完成当前运动',
+          ),
+          backgroundColor: Colors.orange,
+          behavior: SnackBarBehavior.floating,
+          margin: const EdgeInsets.all(16),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        ),
+      );
+      return;
+    }
+    
     activityProvider.startTimer(activityId);
     _startTimerUpdates();
   }

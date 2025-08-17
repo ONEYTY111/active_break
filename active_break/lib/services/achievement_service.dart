@@ -24,9 +24,9 @@ class AchievementService {
   }
 
   /// 获取用户成就列表（包含进度信息）
-  Future<List<UserAchievement>> getUserAchievements(int userId) async {
+  Future<List<UserAchievement>> getUserAchievements(int userId, [String languageCode = 'zh']) async {
     try {
-      final maps = await _databaseService.getUserAchievements(userId);
+      final maps = await _databaseService.getUserAchievements(userId, languageCode);
       return maps.map((map) => UserAchievement.fromMap(map)).toList();
     } catch (e) {
       debugPrint('获取用户成就失败: $e');

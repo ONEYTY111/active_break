@@ -4,6 +4,7 @@ import '../models/reminder_and_tips.dart';
 import '../providers/activity_provider.dart';
 import '../providers/user_provider.dart';
 import '../utils/app_localizations.dart';
+import '../services/reminder_scheduler_service.dart' as scheduler;
 
 class ReminderSettingsDialog extends StatefulWidget {
   final int activityTypeId;
@@ -96,6 +97,22 @@ class _ReminderSettingsDialogState extends State<ReminderSettingsDialog> {
       widget.activityTypeId,
       setting,
     );
+
+    // 更新提醒调度
+     try {
+       final schedulerService = scheduler.ReminderSchedulerService();
+       await schedulerService.initialize();
+       
+       if (_enabled) {
+         // 启用提醒时，安排提醒任务
+         await schedulerService.scheduleReminders(userProvider.currentUser!.userId!);
+       } else {
+          // 禁用提醒时，取消该用户的提醒
+          await schedulerService.cancelReminders(userProvider.currentUser!.userId!);
+        }
+     } catch (e) {
+       debugPrint('更新提醒调度失败: $e');
+     }
 
     setState(() {
       _isLoading = false;

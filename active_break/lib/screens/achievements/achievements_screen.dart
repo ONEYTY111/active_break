@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/achievement_provider.dart';
 import '../../providers/user_provider.dart';
+import '../../providers/language_provider.dart';
 import '../../utils/app_localizations.dart';
 import '../../models/achievement.dart';
 import '../../models/user_achievement.dart';
@@ -20,11 +21,19 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final achievementProvider = Provider.of<AchievementProvider>(context, listen: false);
       final userProvider = Provider.of<UserProvider>(context, listen: false);
+      final languageProvider = Provider.of<LanguageProvider>(context, listen: false);
       
-      // 设置UserProvider并初始化数据
+      // 设置UserProvider并根据当前语言加载数据
       achievementProvider.setUserProvider(userProvider);
-      achievementProvider.initialize();
+      _loadAchievementsWithLanguage(achievementProvider, languageProvider);
     });
+  }
+
+  Future<void> _loadAchievementsWithLanguage(AchievementProvider achievementProvider, LanguageProvider languageProvider) async {
+    final languageCode = languageProvider.locale.languageCode;
+    await achievementProvider.loadUserAchievements(languageCode);
+    await achievementProvider.loadAllAchievements();
+    await achievementProvider.loadAchievementStats();
   }
 
   @override
@@ -34,8 +43,15 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
         title: Text(AppLocalizations.of(context).translate('my_achievements')),
         elevation: 0,
       ),
-      body: Consumer<AchievementProvider>(
-        builder: (context, achievementProvider, child) {
+      body: Consumer2<AchievementProvider, LanguageProvider>(
+        builder: (context, achievementProvider, languageProvider, child) {
+          // 当语言变化时重新加载成就数据
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            final currentLanguage = languageProvider.locale.languageCode;
+            if (achievementProvider.userAchievements.isNotEmpty) {
+              _loadAchievementsWithLanguage(achievementProvider, languageProvider);
+            }
+          });
           if (achievementProvider.isLoading) {
             return const Center(
               child: CircularProgressIndicator(),

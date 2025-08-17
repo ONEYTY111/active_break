@@ -13,10 +13,30 @@ import 'screens/auth/login_screen.dart';
 import 'screens/main/main_screen.dart';
 import 'screens/favorites_screen.dart';
 import 'utils/app_localizations.dart';
+import 'services/notification_service.dart';
+import 'services/reminder_scheduler_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await dotenv.load(fileName: ".env");
+  
+  // 初始化通知服务
+  try {
+    final notificationService = NotificationService();
+    await notificationService.initialize();
+    
+    // 请求通知权限
+    await notificationService.requestPermissions();
+    
+    // 初始化提醒调度服务
+    final schedulerService = ReminderSchedulerService();
+    await schedulerService.initialize();
+    
+    debugPrint('通知服务和提醒调度服务初始化完成');
+  } catch (e) {
+    debugPrint('初始化通知服务失败: $e');
+  }
+  
   runApp(const MyApp());
 }
 
