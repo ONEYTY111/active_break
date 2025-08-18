@@ -8,13 +8,14 @@ import '../services/notification_service.dart';
 import '../models/physical_activity.dart';
 
 class ReminderSchedulerService {
-  static final ReminderSchedulerService _instance = ReminderSchedulerService._internal();
+  static final ReminderSchedulerService _instance =
+      ReminderSchedulerService._internal();
   factory ReminderSchedulerService() => _instance;
   ReminderSchedulerService._internal();
 
   static const String _reminderTaskName = 'exercise_reminder_task';
   static const String _reminderTaskTag = 'exercise_reminder';
-  
+
   bool _isInitialized = false;
 
   /// 初始化后台任务调度器
@@ -45,12 +46,10 @@ class ReminderSchedulerService {
       _reminderTaskName,
       frequency: const Duration(minutes: 15), // 每15分钟检查一次
       initialDelay: const Duration(minutes: 1), // 1分钟后开始
-      inputData: {
-        'userId': userId,
-      },
+      inputData: {'userId': userId},
       tag: _reminderTaskTag,
       constraints: Constraints(
-        networkType: NetworkType.not_required,
+        networkType: NetworkType.unmetered,
         requiresBatteryNotLow: false,
         requiresCharging: false,
         requiresDeviceIdle: false,
@@ -85,7 +84,7 @@ class ReminderSchedulerService {
 
       // 获取用户的所有启用的提醒设置
       final reminders = await _getUserActiveReminders(databaseService, userId);
-      
+
       if (reminders.isEmpty) {
         debugPrint('用户 $userId 没有启用的提醒设置');
         return;
@@ -98,12 +97,14 @@ class ReminderSchedulerService {
       for (final reminder in reminders) {
         if (await _shouldTriggerReminder(reminder, now)) {
           // 获取运动类型信息
-          final activityType = await databaseService.getPhysicalActivityById(reminder.activityTypeId);
+          final activityType = await databaseService.getPhysicalActivityById(
+            reminder.activityTypeId,
+          );
           final activityName = activityType?.name ?? '运动';
 
           // 生成通知ID
           final notificationId = NotificationService.generateNotificationId(
-            userId, 
+            userId,
             reminder.activityTypeId,
           );
 
@@ -123,7 +124,7 @@ class ReminderSchedulerService {
 
   /// 获取用户的活跃提醒设置
   static Future<List<ReminderSetting>> _getUserActiveReminders(
-    DatabaseService databaseService, 
+    DatabaseService databaseService,
     int userId,
   ) async {
     final db = await databaseService.database;
@@ -138,11 +139,9 @@ class ReminderSchedulerService {
     });
   }
 
-
-
   /// 判断是否应该触发提醒
   static Future<bool> _shouldTriggerReminder(
-    ReminderSetting reminder, 
+    ReminderSetting reminder,
     DateTime now,
   ) async {
     // 检查是否在时间范围内
@@ -154,10 +153,7 @@ class ReminderSchedulerService {
       hour: reminder.endTime.hour,
       minute: reminder.endTime.minute,
     );
-    final currentTime = TimeOfDay(
-      hour: now.hour,
-      minute: now.minute,
-    );
+    final currentTime = TimeOfDay(hour: now.hour, minute: now.minute);
 
     if (!_isTimeInRange(currentTime, startTime, endTime)) {
       return false;
@@ -178,8 +174,8 @@ class ReminderSchedulerService {
 
   /// 检查当前时间是否在指定范围内
   static bool _isTimeInRange(
-    TimeOfDay current, 
-    TimeOfDay start, 
+    TimeOfDay current,
+    TimeOfDay start,
     TimeOfDay end,
   ) {
     final currentMinutes = current.hour * 60 + current.minute;
@@ -196,10 +192,7 @@ class ReminderSchedulerService {
   }
 
   /// 检查是否应该根据间隔周期触发
-  static bool _shouldTriggerByInterval(
-    ReminderSetting reminder, 
-    DateTime now,
-  ) {
+  static bool _shouldTriggerByInterval(ReminderSetting reminder, DateTime now) {
     // 根据间隔周期检查
     final daysSinceEpoch = now.difference(DateTime(1970, 1, 1)).inDays;
     return daysSinceEpoch % reminder.intervalWeek == 0;
@@ -207,19 +200,20 @@ class ReminderSchedulerService {
 
   /// 检查是否在最近的间隔时间内已经触发过
   static Future<bool> _hasRecentlyTriggered(
-    ReminderSetting reminder, 
+    ReminderSetting reminder,
     DateTime now,
   ) async {
     // 这里可以实现更复杂的逻辑，比如记录最后触发时间
     // 暂时简单实现：检查当前时间是否是间隔的倍数
     final minutesSinceStart = now.hour * 60 + now.minute;
-    final startMinutes = reminder.startTime.hour * 60 + reminder.startTime.minute;
+    final startMinutes =
+        reminder.startTime.hour * 60 + reminder.startTime.minute;
     final elapsedMinutes = minutesSinceStart - startMinutes;
-    
+
     if (elapsedMinutes < 0) {
       return false; // 还没到开始时间
     }
-    
+
     return elapsedMinutes % reminder.intervalValue == 0;
   }
 }
@@ -229,7 +223,7 @@ class ReminderSchedulerService {
 void callbackDispatcher() {
   Workmanager().executeTask((task, inputData) async {
     debugPrint('执行后台任务: $task');
-    
+
     try {
       switch (task) {
         case 'exercise_reminder_task':
@@ -257,5 +251,6 @@ class TimeOfDay {
   const TimeOfDay({required this.hour, required this.minute});
 
   @override
-  String toString() => '${hour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')}';
+  String toString() =>
+      '${hour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')}';
 }

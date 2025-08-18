@@ -24,9 +24,15 @@ class AchievementService {
   }
 
   /// 获取用户成就列表（包含进度信息）
-  Future<List<UserAchievement>> getUserAchievements(int userId, [String languageCode = 'zh']) async {
+  Future<List<UserAchievement>> getUserAchievements(
+    int userId, [
+    String languageCode = 'zh',
+  ]) async {
     try {
-      final maps = await _databaseService.getUserAchievements(userId, languageCode);
+      final maps = await _databaseService.getUserAchievements(
+        userId,
+        languageCode,
+      );
       return maps.map((map) => UserAchievement.fromMap(map)).toList();
     } catch (e) {
       debugPrint('获取用户成就失败: $e');
@@ -41,7 +47,9 @@ class AchievementService {
   }
 
   /// 获取用户未达成的成就
-  Future<List<UserAchievement>> getUserUnachievedAchievements(int userId) async {
+  Future<List<UserAchievement>> getUserUnachievedAchievements(
+    int userId,
+  ) async {
     final allAchievements = await getUserAchievements(userId);
     return allAchievements.where((ua) => !ua.isAchieved).toList();
   }
@@ -49,29 +57,34 @@ class AchievementService {
   /// 检查并更新用户成就
   Future<List<Achievement>> checkAndUpdateAchievements(int userId) async {
     final newlyAchieved = <Achievement>[];
-    
+
     try {
       // 获取所有成就
       final achievements = await getAllAchievements();
-      
+
       for (final achievement in achievements) {
         // 先获取当前成就状态（更新前）
-        final existingAchievement = await _getUserAchievement(userId, achievement.achievementId);
+        final existingAchievement = await _getUserAchievement(
+          userId,
+          achievement.achievementId,
+        );
         final wasAchieved = existingAchievement?.isAchieved ?? false;
-        
+
         final progress = await _calculateProgress(userId, achievement);
         final isAchieved = progress >= achievement.targetValue;
-        
-        debugPrint('成就检查: ${achievement.name}, 进度: $progress/${achievement.targetValue}, 是否达成: $isAchieved, 之前是否达成: $wasAchieved');
-        
+
+        debugPrint(
+          '成就检查: ${achievement.name}, 进度: $progress/${achievement.targetValue}, 是否达成: $isAchieved, 之前是否达成: $wasAchieved',
+        );
+
         // 更新用户成就记录
         await _databaseService.updateUserAchievement(
-          userId, 
-          achievement.achievementId, 
-          progress, 
-          isAchieved
+          userId,
+          achievement.achievementId,
+          progress,
+          isAchieved,
         );
-        
+
         // 如果是新达成的成就，添加到列表
         if (isAchieved && !wasAchieved) {
           debugPrint('新达成成就: ${achievement.name}');
@@ -81,7 +94,7 @@ class AchievementService {
     } catch (e) {
       debugPrint('检查用户成就失败: $e');
     }
-    
+
     return newlyAchieved;
   }
 
@@ -115,7 +128,7 @@ class AchievementService {
     final db = await _databaseService.database;
     final result = await db.rawQuery(
       'SELECT COUNT(*) as count FROM t_check_in WHERE user_id = ? AND deleted = 0',
-      [userId]
+      [userId],
     );
     return result.first['count'] as int;
   }
@@ -128,7 +141,7 @@ class AchievementService {
       where: 'user_id = ? AND deleted = 0',
       whereArgs: [userId],
     );
-    
+
     if (result.isNotEmpty) {
       return result.first['current_streak'] as int;
     }
@@ -140,7 +153,7 @@ class AchievementService {
     final db = await _databaseService.database;
     final result = await db.rawQuery(
       'SELECT COUNT(*) as count FROM t_activi_record WHERE user_id = ? AND deleted = 0',
-      [userId]
+      [userId],
     );
     return result.first['count'] as int;
   }
@@ -148,26 +161,29 @@ class AchievementService {
   /// 获取用户连续运动天数
   Future<int> _getExerciseStreak(int userId) async {
     final db = await _databaseService.database;
-    
+
     // 获取用户所有运动记录，按日期分组
-    final result = await db.rawQuery('''
+    final result = await db.rawQuery(
+      '''
       SELECT DATE(begin_time) as exercise_date
       FROM t_activi_record 
       WHERE user_id = ? AND deleted = 0
       GROUP BY DATE(begin_time)
       ORDER BY exercise_date DESC
-    ''', [userId]);
-    
+    ''',
+      [userId],
+    );
+
     if (result.isEmpty) return 0;
-    
+
     // 计算连续运动天数
     int streak = 0;
     DateTime? lastDate;
-    
+
     for (final row in result) {
       final dateStr = row['exercise_date'] as String;
       final date = DateTime.parse(dateStr);
-      
+
       if (lastDate == null) {
         // 第一条记录
         lastDate = date;
@@ -183,7 +199,7 @@ class AchievementService {
         }
       }
     }
-    
+
     return streak;
   }
 
@@ -192,9 +208,9 @@ class AchievementService {
     final db = await _databaseService.database;
     final result = await db.rawQuery(
       'SELECT SUM(calories_burned) as total FROM t_activi_record WHERE user_id = ? AND deleted = 0',
-      [userId]
+      [userId],
     );
-    
+
     final total = result.first['total'];
     return total != null ? (total as num).toInt() : 0;
   }
@@ -204,15 +220,18 @@ class AchievementService {
     final db = await _databaseService.database;
     final result = await db.rawQuery(
       'SELECT SUM(duration_minutes) as total FROM t_activi_record WHERE user_id = ? AND deleted = 0',
-      [userId]
+      [userId],
     );
-    
+
     final total = result.first['total'];
     return total != null ? (total as num).toInt() : 0;
   }
 
   /// 获取特定用户成就记录
-  Future<UserAchievement?> _getUserAchievement(int userId, int achievementId) async {
+  Future<UserAchievement?> _getUserAchievement(
+    int userId,
+    int achievementId,
+  ) async {
     try {
       final db = await _databaseService.database;
       final result = await db.query(
@@ -220,7 +239,7 @@ class AchievementService {
         where: 'user_id = ? AND achievement_id = ? AND deleted = 0',
         whereArgs: [userId, achievementId],
       );
-      
+
       if (result.isNotEmpty) {
         return UserAchievement.fromMap(result.first);
       }
@@ -237,8 +256,10 @@ class AchievementService {
       final userAchievements = await getUserAchievements(userId);
       final achieved = userAchievements.where((ua) => ua.isAchieved).length;
       final total = userAchievements.length;
-      final nearCompletion = userAchievements.where((ua) => ua.isNearCompletion).length;
-      
+      final nearCompletion = userAchievements
+          .where((ua) => ua.isNearCompletion)
+          .length;
+
       return {
         'total': total,
         'achieved': achieved,
@@ -247,12 +268,7 @@ class AchievementService {
       };
     } catch (e) {
       debugPrint('获取用户成就统计失败: $e');
-      return {
-        'total': 0,
-        'achieved': 0,
-        'unachieved': 0,
-        'nearCompletion': 0,
-      };
+      return {'total': 0, 'achieved': 0, 'unachieved': 0, 'nearCompletion': 0};
     }
   }
 

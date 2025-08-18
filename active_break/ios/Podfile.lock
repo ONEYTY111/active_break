@@ -17,7 +17,7 @@ PODS:
   - sqflite_darwin (0.0.4):
     - Flutter
     - FlutterMacOS
-  - workmanager (0.0.1):
+  - workmanager_apple (0.0.1):
     - Flutter
 
 DEPENDENCIES:
@@ -29,7 +29,7 @@ DEPENDENCIES:
   - permission_handler_apple (from `.symlinks/plugins/permission_handler_apple/ios`)
   - shared_preferences_foundation (from `.symlinks/plugins/shared_preferences_foundation/darwin`)
   - sqflite_darwin (from `.symlinks/plugins/sqflite_darwin/darwin`)
-  - workmanager (from `.symlinks/plugins/workmanager/ios`)
+  - workmanager_apple (from `.symlinks/plugins/workmanager_apple/ios`)
 
 EXTERNAL SOURCES:
   file_selector_ios:
@@ -48,8 +48,8 @@ EXTERNAL SOURCES:
     :path: ".symlinks/plugins/shared_preferences_foundation/darwin"
   sqflite_darwin:
     :path: ".symlinks/plugins/sqflite_darwin/darwin"
-  workmanager:
-    :path: ".symlinks/plugins/workmanager/ios"
+  workmanager_apple:
+    :path: ".symlinks/plugins/workmanager_apple/ios"
 
 SPEC CHECKSUMS:
   file_selector_ios: f92e583d43608aebc2e4a18daac30b8902845502
@@ -60,8 +60,8 @@ SPEC CHECKSUMS:
   permission_handler_apple: 4ed2196e43d0651e8ff7ca3483a069d469701f2d
   shared_preferences_foundation: 9e1978ff2562383bd5676f64ec4e9aa8fa06a6f7
   sqflite_darwin: 20b2a3a3b70e43edae938624ce550a3cbf66a3d0
-  workmanager: 01be2de7f184bd15de93a1812936a2b7f42ef07e
+  workmanager_apple: 904529ae31e97fc5be632cf628507652294a0778
 
-PODFILE CHECKSUM: 4305caec6b40dde0ae97be1573c53de1882a07e5
+PODFILE CHECKSUM: e30f02f9d1c72c47bb6344a0a748c9d268180865
 
 COCOAPODS: 1.16.2

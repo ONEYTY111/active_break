@@ -14,7 +14,6 @@ import '../../services/database_service.dart';
 import '../../models/physical_activity.dart';
 import '../achievements/achievements_screen.dart';
 
-
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
 
@@ -41,10 +40,11 @@ class ProfileScreen extends StatelessWidget {
                           radius: 32,
                           backgroundImage: user?.avatarUrl != null
                               ? (user!.avatarUrl!.startsWith('http')
-                                  ? NetworkImage(user.avatarUrl!)
-                                  : (File(user.avatarUrl!).existsSync()
-                                      ? FileImage(File(user.avatarUrl!))
-                                      : null) as ImageProvider?)
+                                    ? NetworkImage(user.avatarUrl!)
+                                    : (File(user.avatarUrl!).existsSync()
+                                              ? FileImage(File(user.avatarUrl!))
+                                              : null)
+                                          as ImageProvider?)
                               : null,
                           child: user?.avatarUrl == null
                               ? Text(
@@ -95,10 +95,17 @@ class ProfileScreen extends StatelessWidget {
                                 const SizedBox(height: 2),
                                 Text(
                                   user!.gender == 'male'
-                                      ? AppLocalizations.of(context).translate('male')
-                                      : AppLocalizations.of(context).translate('female'),
-                                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                      ? AppLocalizations.of(
+                                          context,
+                                        ).translate('male')
+                                      : AppLocalizations.of(
+                                          context,
+                                        ).translate('female'),
+                                  style: Theme.of(context).textTheme.bodySmall
+                                      ?.copyWith(
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.onSurfaceVariant,
                                       ),
                                 ),
                               ],
@@ -106,8 +113,11 @@ class ProfileScreen extends StatelessWidget {
                                 const SizedBox(height: 2),
                                 Text(
                                   '${user!.birthday!.year}-${user.birthday!.month.toString().padLeft(2, '0')}-${user.birthday!.day.toString().padLeft(2, '0')}',
-                                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                  style: Theme.of(context).textTheme.bodySmall
+                                      ?.copyWith(
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.onSurfaceVariant,
                                       ),
                                 ),
                               ],
@@ -212,7 +222,10 @@ class ProfileScreen extends StatelessWidget {
               child: Consumer<AchievementProvider>(
                 builder: (context, achievementProvider, child) {
                   return ListTile(
-                    leading: const Icon(Icons.emoji_events, color: Colors.amber),
+                    leading: const Icon(
+                      Icons.emoji_events,
+                      color: Colors.amber,
+                    ),
                     title: Text(
                       AppLocalizations.of(context).translate('my_achievements'),
                     ),
@@ -233,8 +246,6 @@ class ProfileScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 8),
-
-
 
             // Change password
             Card(

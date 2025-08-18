@@ -31,25 +31,25 @@ class NotificationService {
     // iOS 初始化设置
     const DarwinInitializationSettings initializationSettingsIOS =
         DarwinInitializationSettings(
-      requestAlertPermission: true,
-      requestBadgePermission: true,
-      requestSoundPermission: true,
-    );
+          requestAlertPermission: true,
+          requestBadgePermission: true,
+          requestSoundPermission: true,
+        );
 
     // macOS 初始化设置
     const DarwinInitializationSettings initializationSettingsMacOS =
         DarwinInitializationSettings(
-      requestAlertPermission: true,
-      requestBadgePermission: true,
-      requestSoundPermission: true,
-    );
+          requestAlertPermission: true,
+          requestBadgePermission: true,
+          requestSoundPermission: true,
+        );
 
     const InitializationSettings initializationSettings =
         InitializationSettings(
-      android: initializationSettingsAndroid,
-      iOS: initializationSettingsIOS,
-      macOS: initializationSettingsMacOS,
-    );
+          android: initializationSettingsAndroid,
+          iOS: initializationSettingsIOS,
+          macOS: initializationSettingsMacOS,
+        );
 
     await _flutterLocalNotificationsPlugin.initialize(
       initializationSettings,
@@ -69,12 +69,9 @@ class NotificationService {
         defaultTargetPlatform == TargetPlatform.macOS) {
       final bool? result = await _flutterLocalNotificationsPlugin
           .resolvePlatformSpecificImplementation<
-              IOSFlutterLocalNotificationsPlugin>()
-          ?.requestPermissions(
-            alert: true,
-            badge: true,
-            sound: true,
-          );
+            IOSFlutterLocalNotificationsPlugin
+          >()
+          ?.requestPermissions(alert: true, badge: true, sound: true);
       return result ?? false;
     }
     return true;
@@ -89,7 +86,8 @@ class NotificationService {
         defaultTargetPlatform == TargetPlatform.macOS) {
       final permissions = await _flutterLocalNotificationsPlugin
           .resolvePlatformSpecificImplementation<
-              IOSFlutterLocalNotificationsPlugin>()
+            IOSFlutterLocalNotificationsPlugin
+          >()
           ?.checkPermissions();
       final bool result = permissions?.isEnabled == true;
       return result ?? false;
@@ -112,22 +110,22 @@ class NotificationService {
 
     const AndroidNotificationDetails androidPlatformChannelSpecifics =
         AndroidNotificationDetails(
-      'exercise_reminders',
-      '运动提醒',
-      channelDescription: '定时运动提醒通知',
-      importance: Importance.high,
-      priority: Priority.high,
-      showWhen: true,
-      enableVibration: true,
-      playSound: true,
-    );
+          'exercise_reminders',
+          '运动提醒',
+          channelDescription: '定时运动提醒通知',
+          importance: Importance.high,
+          priority: Priority.high,
+          showWhen: true,
+          enableVibration: true,
+          playSound: true,
+        );
 
     const DarwinNotificationDetails iOSPlatformChannelSpecifics =
         DarwinNotificationDetails(
-      presentAlert: true,
-      presentBadge: true,
-      presentSound: true,
-    );
+          presentAlert: true,
+          presentBadge: true,
+          presentSound: true,
+        );
 
     const NotificationDetails platformChannelSpecifics = NotificationDetails(
       android: androidPlatformChannelSpecifics,
@@ -162,22 +160,22 @@ class NotificationService {
 
     const AndroidNotificationDetails androidPlatformChannelSpecifics =
         AndroidNotificationDetails(
-      'exercise_reminders',
-      '运动提醒',
-      channelDescription: '定时运动提醒通知',
-      importance: Importance.high,
-      priority: Priority.high,
-      showWhen: true,
-      enableVibration: true,
-      playSound: true,
-    );
+          'exercise_reminders',
+          '运动提醒',
+          channelDescription: '定时运动提醒通知',
+          importance: Importance.high,
+          priority: Priority.high,
+          showWhen: true,
+          enableVibration: true,
+          playSound: true,
+        );
 
     const DarwinNotificationDetails iOSPlatformChannelSpecifics =
         DarwinNotificationDetails(
-      presentAlert: true,
-      presentBadge: true,
-      presentSound: true,
-    );
+          presentAlert: true,
+          presentBadge: true,
+          presentSound: true,
+        );
 
     const NotificationDetails platformChannelSpecifics = NotificationDetails(
       android: androidPlatformChannelSpecifics,
@@ -221,7 +219,7 @@ class NotificationService {
   void _onNotificationTapped(NotificationResponse notificationResponse) {
     final String? payload = notificationResponse.payload;
     debugPrint('通知被点击: $payload');
-    
+
     if (payload != null && payload.startsWith('exercise_reminder:')) {
       // 处理运动提醒通知点击
       // 可以导航到运动页面或显示运动选择对话框

@@ -19,17 +19,26 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final achievementProvider = Provider.of<AchievementProvider>(context, listen: false);
+      final achievementProvider = Provider.of<AchievementProvider>(
+        context,
+        listen: false,
+      );
       final userProvider = Provider.of<UserProvider>(context, listen: false);
-      final languageProvider = Provider.of<LanguageProvider>(context, listen: false);
-      
+      final languageProvider = Provider.of<LanguageProvider>(
+        context,
+        listen: false,
+      );
+
       // 设置UserProvider并根据当前语言加载数据
       achievementProvider.setUserProvider(userProvider);
       _loadAchievementsWithLanguage(achievementProvider, languageProvider);
     });
   }
 
-  Future<void> _loadAchievementsWithLanguage(AchievementProvider achievementProvider, LanguageProvider languageProvider) async {
+  Future<void> _loadAchievementsWithLanguage(
+    AchievementProvider achievementProvider,
+    LanguageProvider languageProvider,
+  ) async {
     final languageCode = languageProvider.locale.languageCode;
     await achievementProvider.loadUserAchievements(languageCode);
     await achievementProvider.loadAllAchievements();
@@ -49,13 +58,14 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             final currentLanguage = languageProvider.locale.languageCode;
             if (achievementProvider.userAchievements.isNotEmpty) {
-              _loadAchievementsWithLanguage(achievementProvider, languageProvider);
+              _loadAchievementsWithLanguage(
+                achievementProvider,
+                languageProvider,
+              );
             }
           });
           if (achievementProvider.isLoading) {
-            return const Center(
-              child: CircularProgressIndicator(),
-            );
+            return const Center(child: CircularProgressIndicator());
           }
 
           if (achievementProvider.error != null) {
@@ -77,7 +87,9 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
                   const SizedBox(height: 16),
                   ElevatedButton(
                     onPressed: () => achievementProvider.initialize(),
-                    child: Text(AppLocalizations.of(context).translate('retry')),
+                    child: Text(
+                      AppLocalizations.of(context).translate('retry'),
+                    ),
                   ),
                 ],
               ),
@@ -123,20 +135,27 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
                           context,
                           Icons.percent,
                           '${achievementProvider.userAchievements.isNotEmpty ? (achievementProvider.achievedAchievements.length / achievementProvider.userAchievements.length * 100).toStringAsFixed(0) : "0"}%',
-                          AppLocalizations.of(context).translate('completion_rate'),
+                          AppLocalizations.of(
+                            context,
+                          ).translate('completion_rate'),
                         ),
                       ],
                     ),
                     const SizedBox(height: 16),
                     LinearProgressIndicator(
-                      value: achievementProvider.userAchievements.isNotEmpty ? achievementProvider.achievedAchievements.length / achievementProvider.userAchievements.length : 0,
+                      value: achievementProvider.userAchievements.isNotEmpty
+                          ? achievementProvider.achievedAchievements.length /
+                                achievementProvider.userAchievements.length
+                          : 0,
                       backgroundColor: Colors.white.withOpacity(0.3),
-                      valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
+                      valueColor: const AlwaysStoppedAnimation<Color>(
+                        Colors.white,
+                      ),
                     ),
                   ],
                 ),
               ),
-              
+
               // 成就列表
               Expanded(
                 child: achievementProvider.userAchievements.isEmpty
@@ -147,11 +166,15 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
                             Icon(
                               Icons.emoji_events_outlined,
                               size: 64,
-                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onSurfaceVariant,
                             ),
                             const SizedBox(height: 16),
                             Text(
-                              AppLocalizations.of(context).translate('no_achievements_yet'),
+                              AppLocalizations.of(
+                                context,
+                              ).translate('no_achievements_yet'),
                               style: Theme.of(context).textTheme.bodyLarge,
                             ),
                           ],
@@ -161,8 +184,12 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
                         padding: const EdgeInsets.symmetric(horizontal: 16),
                         itemCount: achievementProvider.userAchievements.length,
                         itemBuilder: (context, index) {
-                          final userAchievement = achievementProvider.userAchievements[index];
-                          return _buildAchievementCard(context, userAchievement);
+                          final userAchievement =
+                              achievementProvider.userAchievements[index];
+                          return _buildAchievementCard(
+                            context,
+                            userAchievement,
+                          );
                         },
                       ),
               ),
@@ -173,14 +200,15 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
     );
   }
 
-  Widget _buildStatItem(BuildContext context, IconData icon, String value, String label) {
+  Widget _buildStatItem(
+    BuildContext context,
+    IconData icon,
+    String value,
+    String label,
+  ) {
     return Column(
       children: [
-        Icon(
-          icon,
-          color: Colors.white,
-          size: 32,
-        ),
+        Icon(icon, color: Colors.white, size: 32),
         const SizedBox(height: 8),
         Text(
           value,
@@ -191,15 +219,18 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
         ),
         Text(
           label,
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-            color: Colors.white.withOpacity(0.9),
-          ),
+          style: Theme.of(
+            context,
+          ).textTheme.bodySmall?.copyWith(color: Colors.white.withOpacity(0.9)),
         ),
       ],
     );
   }
 
-  Widget _buildAchievementCard(BuildContext context, UserAchievement userAchievement) {
+  Widget _buildAchievementCard(
+    BuildContext context,
+    UserAchievement userAchievement,
+  ) {
     final achievement = userAchievement.achievement;
     final isCompleted = userAchievement.isAchieved;
     final progress = userAchievement.progressPercentage;
@@ -218,18 +249,22 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
                 shape: BoxShape.circle,
                 color: isCompleted
                     ? Theme.of(context).colorScheme.primary.withOpacity(0.1)
-                    : Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.1),
+                    : Theme.of(
+                        context,
+                      ).colorScheme.onSurfaceVariant.withOpacity(0.1),
               ),
               child: Icon(
                 _getAchievementIcon(achievement?.icon ?? ''),
                 size: 32,
                 color: isCompleted
                     ? Theme.of(context).colorScheme.primary
-                    : Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.5),
+                    : Theme.of(
+                        context,
+                      ).colorScheme.onSurfaceVariant.withOpacity(0.5),
               ),
             ),
             const SizedBox(width: 16),
-            
+
             // 成就信息
             Expanded(
               child: Column(
@@ -241,7 +276,9 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
                       fontWeight: FontWeight.bold,
                       color: isCompleted
                           ? Theme.of(context).colorScheme.onSurface
-                          : Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.7),
+                          : Theme.of(
+                              context,
+                            ).colorScheme.onSurfaceVariant.withOpacity(0.7),
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -250,11 +287,13 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       color: isCompleted
                           ? Theme.of(context).colorScheme.onSurfaceVariant
-                          : Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.5),
+                          : Theme.of(
+                              context,
+                            ).colorScheme.onSurfaceVariant.withOpacity(0.5),
                     ),
                   ),
                   const SizedBox(height: 8),
-                  
+
                   // 进度条
                   if (!isCompleted) ...[
                     Row(
@@ -262,18 +301,25 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
                         Expanded(
                           child: LinearProgressIndicator(
                             value: progress / 100,
-                            backgroundColor: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.2),
+                            backgroundColor: Theme.of(
+                              context,
+                            ).colorScheme.onSurfaceVariant.withOpacity(0.2),
                             valueColor: AlwaysStoppedAnimation<Color>(
-                              Theme.of(context).colorScheme.primary.withOpacity(0.7),
+                              Theme.of(
+                                context,
+                              ).colorScheme.primary.withOpacity(0.7),
                             ),
                           ),
                         ),
                         const SizedBox(width: 8),
                         Text(
                           '${progress.toStringAsFixed(0)}%',
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: Theme.of(context).colorScheme.onSurfaceVariant,
-                          ),
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurfaceVariant,
+                              ),
                         ),
                       ],
                     ),
@@ -288,18 +334,22 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
                         const SizedBox(width: 4),
                         Text(
                           AppLocalizations.of(context).translate('completed'),
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: Theme.of(context).colorScheme.primary,
-                            fontWeight: FontWeight.bold,
-                          ),
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(
+                                color: Theme.of(context).colorScheme.primary,
+                                fontWeight: FontWeight.bold,
+                              ),
                         ),
                         if (userAchievement.achievedAt != null) ...[
                           const SizedBox(width: 8),
                           Text(
                             '${userAchievement.achievedAt!.year}-${userAchievement.achievedAt!.month.toString().padLeft(2, '0')}-${userAchievement.achievedAt!.day.toString().padLeft(2, '0')}',
-                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: Theme.of(context).colorScheme.onSurfaceVariant,
-                            ),
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurfaceVariant,
+                                ),
                           ),
                         ],
                       ],

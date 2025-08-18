@@ -9,7 +9,8 @@ class AppLocalizations {
     return Localizations.of<AppLocalizations>(context, AppLocalizations)!;
   }
 
-  static const LocalizationsDelegate<AppLocalizations> delegate = _AppLocalizationsDelegate();
+  static const LocalizationsDelegate<AppLocalizations> delegate =
+      _AppLocalizationsDelegate();
 
   static const List<Locale> supportedLocales = [
     Locale('zh', 'CN'),
@@ -20,7 +21,7 @@ class AppLocalizations {
     'zh': {
       // App
       'app_name': '健身打卡',
-      
+
       // Auth
       'login': '登录',
       'register': '注册',
@@ -46,14 +47,14 @@ class AppLocalizations {
       'login_failed': '登录失败，请检查用户名和密码',
       'register_failed': '注册失败，用户名或邮箱可能已存在',
       'no_account_register': '没有账号？立即注册',
-      
+
       // Navigation
       'home': '首页',
       'exercise': '运动',
       'recommend': '推荐',
       'profile': '我的',
       'check_in': '打卡',
-      
+
       // Home
       'recent_activities': '最近运动',
       'weekly_summary': '本周总结',
@@ -62,7 +63,7 @@ class AppLocalizations {
       'total_calories': '总消耗',
       'minutes': '分钟',
       'calories': '卡路里',
-      
+
       // Exercise
       'start': '开始',
       'stop': '停止',
@@ -72,7 +73,7 @@ class AppLocalizations {
       'save_record': '保存记录',
       'record_saved': '运动记录已保存',
       'activity_auto_completed': '运动时间到，已自动完成！',
-      
+
       // Reminder
       'reminder_settings': '提醒设置',
       'enable_reminder': '启用提醒',
@@ -81,7 +82,14 @@ class AppLocalizations {
       'end_time': '结束时间',
       'save': '保存',
       'reminder_saved': '提醒设置已保存',
-      
+      'no_recent_activities': '暂无最近运动',
+      'start_exercising_now': '现在开始运动吧！',
+      'repeat_every': '重复间隔',
+      'every_day': '每天',
+      'every_2_days': '每2天',
+      'every_3_days': '每3天',
+      'weekly': '每周',
+
       // Check-in
       'check_in_success': '恭喜你完成打卡！',
       'check_in_congratulations': '太棒了！',
@@ -90,11 +98,11 @@ class AppLocalizations {
       'already_checked_in': '今天已经打过卡了',
       'keep_it_up': '继续保持！',
       'already_checked_in_subtitle': '今天已经完成打卡了，明天再来吧！',
-      
+
       // Recommend
       'daily_tips': '每日健康建议',
       'no_tips_today': '今日暂无建议',
-      
+
       // Profile
       'personal_info': '个人信息',
       'settings': '设置',
@@ -146,6 +154,9 @@ class AppLocalizations {
       'achievement_unlocked': '成就解锁！',
       'congratulations_achievement': '恭喜你达成了新成就！',
 
+      'welcome_message': '让我们一起保持健康的生活方式！',
+      'hello_user': '你好，{username}！',
+
       // Common
       'cancel': '取消',
       'confirm': '确认',
@@ -160,7 +171,7 @@ class AppLocalizations {
     'en': {
       // App
       'app_name': 'Active Break',
-      
+
       // Auth
       'login': 'Login',
       'register': 'Register',
@@ -184,16 +195,17 @@ class AppLocalizations {
       'passwords_not_match': 'Passwords do not match',
       'invalid_email': 'Invalid email format',
       'login_failed': 'Login failed, please check username and password',
-      'register_failed': 'Registration failed, username or email may already exist',
+      'register_failed':
+          'Registration failed, username or email may already exist',
       'no_account_register': 'No account? Register now',
-      
+
       // Navigation
       'home': 'Home',
       'exercise': 'Exercise',
       'recommend': 'Recommend',
       'profile': 'Profile',
       'check_in': 'Check In',
-      
+
       // Home
       'recent_activities': 'Recent Activities',
       'weekly_summary': 'Weekly Summary',
@@ -202,7 +214,7 @@ class AppLocalizations {
       'total_calories': 'Total Calories',
       'minutes': 'minutes',
       'calories': 'calories',
-      
+
       // Exercise
       'start': 'Start',
       'stop': 'Stop',
@@ -211,8 +223,9 @@ class AppLocalizations {
       'duration': 'Duration',
       'save_record': 'Save Record',
       'record_saved': 'Activity record saved',
-      'activity_auto_completed': 'Time\'s up! Activity completed automatically!',
-      
+      'activity_auto_completed':
+          'Time\'s up! Activity completed automatically!',
+
       // Reminder
       'reminder_settings': 'Reminder Settings',
       'enable_reminder': 'Enable Reminder',
@@ -221,7 +234,14 @@ class AppLocalizations {
       'end_time': 'End Time',
       'save': 'Save',
       'reminder_saved': 'Reminder settings saved',
-      
+      'no_recent_activities': 'No recent activities',
+      'start_exercising_now': 'Start exercising now!',
+      'repeat_every': 'Repeat every',
+      'every_day': 'Every day',
+      'every_2_days': 'Every 2 days',
+      'every_3_days': 'Every 3 days',
+      'weekly': 'Weekly',
+
       // Check-in
       'check_in_success': 'Congratulations on your check-in!',
       'check_in_congratulations': 'Awesome!',
@@ -229,12 +249,13 @@ class AppLocalizations {
       'days': 'days',
       'already_checked_in': 'Already checked in today',
       'keep_it_up': 'Keep it up!',
-      'already_checked_in_subtitle': 'You have already checked in today, come back tomorrow!',
-      
+      'already_checked_in_subtitle':
+          'You have already checked in today, come back tomorrow!',
+
       // Recommend
       'daily_tips': 'Daily Health Tips',
       'no_tips_today': 'No tips for today',
-      
+
       // Profile
       'personal_info': 'Personal Information',
       'settings': 'Settings',
@@ -272,7 +293,8 @@ class AppLocalizations {
       'achievement_unlocked': 'Achievement Unlocked!',
       'achievement_completed': 'Achievement Completed',
       'no_achievements': 'No achievements yet',
-      'no_achievements_subtitle': 'Complete exercises and check-ins to unlock achievements!',
+      'no_achievements_subtitle':
+          'Complete exercises and check-ins to unlock achievements!',
       'achievement_description': 'Achievement Description',
       'achievement_reward': 'Achievement Reward',
       'progress': 'Progress',
@@ -285,6 +307,9 @@ class AppLocalizations {
       'retry': 'Retry',
       'achievement_unlocked': 'Achievement Unlocked!',
       'congratulations_achievement': 'Congratulations on your new achievement!',
+
+      'welcome_message': 'Let\'s maintain a healthy lifestyle together!',
+      'hello_user': 'Hello, {username}!',
 
       // Common
       'cancel': 'Cancel',
@@ -304,7 +329,8 @@ class AppLocalizations {
   }
 }
 
-class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {
+class _AppLocalizationsDelegate
+    extends LocalizationsDelegate<AppLocalizations> {
   const _AppLocalizationsDelegate();
 
   @override

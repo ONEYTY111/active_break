@@ -62,37 +62,40 @@ class AchievementProvider with ChangeNotifier {
     try {
       _setLoading(true);
       _setError(null);
-      
+
       final currentUser = _userProvider?.currentUser;
       if (currentUser != null) {
         // 如果没有提供语言代码，使用默认的中文
         final langCode = languageCode ?? 'zh';
-        _userAchievements = await _achievementService.getUserAchievements(currentUser.userId!, langCode);
-        
+        _userAchievements = await _achievementService.getUserAchievements(
+          currentUser.userId!,
+          langCode,
+        );
+
         // 对成就进行排序：已完成的在前面，未完成的在后面
         _userAchievements.sort((a, b) {
           // 如果一个已完成，一个未完成，已完成的排在前面
           if (a.isAchieved && !b.isAchieved) return -1;
           if (!a.isAchieved && b.isAchieved) return 1;
-          
+
           // 如果都已完成，按完成时间倒序排列（最新完成的在前面）
           if (a.isAchieved && b.isAchieved) {
             if (a.achievedAt != null && b.achievedAt != null) {
               return b.achievedAt!.compareTo(a.achievedAt!);
             }
           }
-          
+
           // 如果都未完成，按进度倒序排列（进度高的在前面）
           if (!a.isAchieved && !b.isAchieved) {
             return b.currentProgress.compareTo(a.currentProgress);
           }
-          
+
           return 0;
         });
       } else {
         _userAchievements = [];
       }
-      
+
       notifyListeners();
     } catch (e) {
       _setError('加载用户成就失败: $e');
@@ -116,9 +119,11 @@ class AchievementProvider with ChangeNotifier {
   Future<void> loadAchievementStats() async {
     try {
       final currentUser = _userProvider?.currentUser;
-       if (currentUser != null) {
-         _achievementStats = await _achievementService.getUserAchievementStats(currentUser.userId!);
-       } else {
+      if (currentUser != null) {
+        _achievementStats = await _achievementService.getUserAchievementStats(
+          currentUser.userId!,
+        );
+      } else {
         _achievementStats = {};
       }
       notifyListeners();
@@ -131,15 +136,16 @@ class AchievementProvider with ChangeNotifier {
   Future<List<Achievement>> checkAndUpdateAchievements() async {
     try {
       final currentUser = _userProvider?.currentUser;
-       if (currentUser == null) return [];
-       
-       // 检查新达成的成就
-       final newlyAchieved = await _achievementService.checkAndUpdateAchievements(currentUser.userId!);
-      
+      if (currentUser == null) return [];
+
+      // 检查新达成的成就
+      final newlyAchieved = await _achievementService
+          .checkAndUpdateAchievements(currentUser.userId!);
+
       // 重新加载数据
       await loadUserAchievements();
       await loadAchievementStats();
-      
+
       return newlyAchieved;
     } catch (e) {
       debugPrint('检查成就失败: $e');
@@ -148,41 +154,45 @@ class AchievementProvider with ChangeNotifier {
   }
 
   /// 在打卡后检查成就
-  Future<List<Achievement>> checkAchievementsAfterCheckin([BuildContext? context]) async {
+  Future<List<Achievement>> checkAchievementsAfterCheckin([
+    BuildContext? context,
+  ]) async {
     debugPrint('检查打卡相关成就');
     final newAchievements = await checkAndUpdateAchievements();
-    
+
     if (newAchievements.isNotEmpty && context != null) {
       AchievementNotification.show(context, newAchievements);
     }
-    
+
     return newAchievements;
   }
 
   /// 在运动后检查成就
-  Future<List<Achievement>> checkAchievementsAfterExercise([BuildContext? context]) async {
+  Future<List<Achievement>> checkAchievementsAfterExercise([
+    BuildContext? context,
+  ]) async {
     debugPrint('检查运动相关成就');
     final newAchievements = await checkAndUpdateAchievements();
-    
+
     if (newAchievements.isNotEmpty && context != null) {
       AchievementNotification.show(context, newAchievements);
     }
-    
+
     return newAchievements;
   }
 
   /// 获取特定类型的成就
   List<UserAchievement> getAchievementsByType(String type) {
-    return _userAchievements.where((ua) => 
-      ua.achievement?.type == type
-    ).toList();
+    return _userAchievements
+        .where((ua) => ua.achievement?.type == type)
+        .toList();
   }
 
   /// 获取特定成就的详细信息
   UserAchievement? getAchievementById(int achievementId) {
     try {
       return _userAchievements.firstWhere(
-        (ua) => ua.achievementId == achievementId
+        (ua) => ua.achievementId == achievementId,
       );
     } catch (e) {
       return null;
@@ -198,10 +208,10 @@ class AchievementProvider with ChangeNotifier {
   Future<void> resetAchievements() async {
     try {
       final currentUser = _userProvider?.currentUser;
-       if (currentUser != null) {
-         await _achievementService.resetUserAchievements(currentUser.userId!);
-         await refresh();
-       }
+      if (currentUser != null) {
+        await _achievementService.resetUserAchievements(currentUser.userId!);
+        await refresh();
+      }
     } catch (e) {
       debugPrint('重置成就失败: $e');
     }
