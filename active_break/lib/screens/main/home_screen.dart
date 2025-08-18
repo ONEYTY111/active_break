@@ -35,8 +35,14 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> loadLocalizedDescriptions() async {
-    final languageProvider = Provider.of<LanguageProvider>(context, listen: false);
-    final activityProvider = Provider.of<ActivityProvider>(context, listen: false);
+    final languageProvider = Provider.of<LanguageProvider>(
+      context,
+      listen: false,
+    );
+    final activityProvider = Provider.of<ActivityProvider>(
+      context,
+      listen: false,
+    );
     final databaseService = DatabaseService();
 
     try {
@@ -48,7 +54,9 @@ class _HomeScreenState extends State<HomeScreen> {
         [locale],
       );
 
-      final i18nMap = {for (final row in rows) row['activity_type_id'] as int: row};
+      final i18nMap = {
+        for (final row in rows) row['activity_type_id'] as int: row,
+      };
 
       // Update activities with localized names and descriptions
       final updatedActivities = activityProvider.activities.map((activity) {
@@ -103,7 +111,7 @@ class _HomeScreenState extends State<HomeScreen> {
         WidgetsBinding.instance.addPostFrameCallback((_) async {
           await loadLocalizedDescriptions();
         });
-        
+
         return Scaffold(
           appBar: AppBar(
             title: Text(AppLocalizations.of(context).translate('home')),
@@ -113,7 +121,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   return Padding(
                     padding: const EdgeInsets.only(right: 16),
                     child: CircleAvatar(
-                      backgroundImage: userProvider.currentUser?.avatarUrl != null
+                      backgroundImage:
+                          userProvider.currentUser?.avatarUrl != null
                           ? NetworkImage(userProvider.currentUser!.avatarUrl!)
                           : null,
                       child: userProvider.currentUser?.avatarUrl == null
@@ -122,7 +131,9 @@ class _HomeScreenState extends State<HomeScreen> {
                                       .substring(0, 1)
                                       .toUpperCase() ??
                                   'U',
-                              style: const TextStyle(fontWeight: FontWeight.bold),
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                              ),
                             )
                           : null,
                     ),
@@ -144,21 +155,31 @@ class _HomeScreenState extends State<HomeScreen> {
                         padding: const EdgeInsets.all(16),
                         child: Row(
                           children: [
-                            Icon(Icons.waving_hand, color: Colors.orange, size: 32),
+                            Icon(
+                              Icons.waving_hand,
+                              color: Colors.orange,
+                              size: 32,
+                            ),
                             const SizedBox(width: 12),
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    'Hello, ${userProvider.currentUser?.username ?? 'User'}!',
-                                    style: Theme.of(context).textTheme.titleLarge
+                                    AppLocalizations.of(context).translate('hello_user').replaceAll('{username}', userProvider.currentUser?.username ?? 'User'),
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .titleLarge
                                         ?.copyWith(fontWeight: FontWeight.bold),
                                   ),
                                   const SizedBox(height: 4),
                                   Text(
-                                    AppLocalizations.of(context).translate('welcome_message'),
-                                    style: Theme.of(context).textTheme.bodyMedium
+                                    AppLocalizations.of(
+                                      context,
+                                    ).translate('welcome_message'),
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .bodyMedium
                                         ?.copyWith(
                                           color: Theme.of(
                                             context,
@@ -188,12 +209,16 @@ class _HomeScreenState extends State<HomeScreen> {
                             Container(
                               padding: const EdgeInsets.all(12),
                               decoration: BoxDecoration(
-                                color: Theme.of(context).colorScheme.primaryContainer,
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.primaryContainer,
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: Icon(
                                 Icons.local_fire_department,
-                                color: Theme.of(context).colorScheme.onPrimaryContainer,
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onPrimaryContainer,
                                 size: 32,
                               ),
                             ),
@@ -206,12 +231,16 @@ class _HomeScreenState extends State<HomeScreen> {
                                     AppLocalizations.of(
                                       context,
                                     ).translate('consecutive_days'),
-                                    style: Theme.of(context).textTheme.titleMedium,
+                                    style: Theme.of(
+                                      context,
+                                    ).textTheme.titleMedium,
                                   ),
                                   const SizedBox(height: 4),
                                   Text(
                                     '${streak?.currentStreak ?? 0} ${AppLocalizations.of(context).translate('days')}',
-                                    style: Theme.of(context).textTheme.headlineSmall
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .headlineSmall
                                         ?.copyWith(
                                           fontWeight: FontWeight.bold,
                                           color: Theme.of(
@@ -253,11 +282,15 @@ class _HomeScreenState extends State<HomeScreen> {
                               Icon(
                                 Icons.fitness_center,
                                 size: 64,
-                                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurfaceVariant,
                               ),
                               const SizedBox(height: 16),
                               Text(
-                                AppLocalizations.of(context).translate('no_recent_activities'),
+                                AppLocalizations.of(
+                                  context,
+                                ).translate('no_recent_activities'),
                                 style: Theme.of(context).textTheme.titleMedium
                                     ?.copyWith(
                                       color: Theme.of(
@@ -268,7 +301,9 @@ class _HomeScreenState extends State<HomeScreen> {
                               ),
                               const SizedBox(height: 8),
                               Text(
-                                AppLocalizations.of(context).translate('start_exercising_now'),
+                                AppLocalizations.of(
+                                  context,
+                                ).translate('start_exercising_now'),
                                 style: Theme.of(context).textTheme.bodyMedium
                                     ?.copyWith(
                                       color: Theme.of(
@@ -298,9 +333,10 @@ class _HomeScreenState extends State<HomeScreen> {
                           margin: const EdgeInsets.only(bottom: 8),
                           child: ListTile(
                             leading: CircleAvatar(
-                              backgroundColor: ActivityIcons.getColorByActivityType(
-                                activity.activityTypeId!,
-                              ).withValues(alpha: 0.8),
+                              backgroundColor:
+                                  ActivityIcons.getColorByActivityType(
+                                    activity.activityTypeId!,
+                                  ).withValues(alpha: 0.8),
                               child: Icon(
                                 ActivityIcons.getIconByActivityType(
                                   activity.activityTypeId!,
@@ -315,23 +351,33 @@ class _HomeScreenState extends State<HomeScreen> {
                               builder: (context) {
                                 final start = record.beginTime;
                                 final end = record.endTime;
-                                String two(int n) => n.toString().padLeft(2, '0');
-                                final startStr = '${two(start.hour)}:${two(start.minute)}:${two(start.second)}';
-                                final endStr = '${two(end.hour)}:${two(end.minute)}:${two(end.second)}';
-                                final durationStr = '${record.durationMinutes} ${AppLocalizations.of(context).translate('minutes')}';
-                                final caloriesStr = '${record.caloriesBurned} ${AppLocalizations.of(context).translate('calories')}';
-                                return Text('$startStr - $endStr • $durationStr • $caloriesStr');
+                                String two(int n) =>
+                                    n.toString().padLeft(2, '0');
+                                final startStr =
+                                    '${two(start.hour)}:${two(start.minute)}:${two(start.second)}';
+                                final endStr =
+                                    '${two(end.hour)}:${two(end.minute)}:${two(end.second)}';
+                                final durationStr =
+                                    '${record.durationMinutes} ${AppLocalizations.of(context).translate('minutes')}';
+                                final caloriesStr =
+                                    '${record.caloriesBurned} ${AppLocalizations.of(context).translate('calories')}';
+                                return Text(
+                                  '$startStr - $endStr • $durationStr • $caloriesStr',
+                                );
                               },
                             ),
                             trailing: Builder(
                               builder: (context) {
-                                final languageProvider = Provider.of<LanguageProvider>(context);
-                                
+                                final languageProvider =
+                                    Provider.of<LanguageProvider>(context);
+
                                 // Use "MMM d" format for English (e.g., "Dec 12"), M/D format for Chinese
-                                final dateStr = languageProvider.isEnglish 
-                                    ? DateFormat('MMM d').format(record.beginTime)
+                                final dateStr = languageProvider.isEnglish
+                                    ? DateFormat(
+                                        'MMM d',
+                                      ).format(record.beginTime)
                                     : '${record.beginTime.month}/${record.beginTime.day}';
-                                
+
                                 return Text(
                                   dateStr,
                                   style: Theme.of(context).textTheme.bodySmall
@@ -363,14 +409,15 @@ class _HomeScreenState extends State<HomeScreen> {
                 Consumer<ActivityProvider>(
                   builder: (context, activityProvider, child) {
                     // Only reload weekly data when recent records change (indicating new activity was added)
-                    final currentRecordsCount = activityProvider.recentRecords.length;
+                    final currentRecordsCount =
+                        activityProvider.recentRecords.length;
                     WidgetsBinding.instance.addPostFrameCallback((_) {
                       if (mounted && currentRecordsCount != _lastRecordsCount) {
                         _lastRecordsCount = currentRecordsCount;
                         _loadWeeklyData();
                       }
                     });
-                    
+
                     return Card(
                       child: Padding(
                         padding: const EdgeInsets.all(16),
@@ -410,7 +457,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 const SizedBox(height: 24),
 
                 // Activity chart
-                if (!_isLoadingWeekly) ActivityChart(weeklyRecords: _weeklyRecords),
+                if (!_isLoadingWeekly)
+                  ActivityChart(weeklyRecords: _weeklyRecords),
               ],
             ),
           ),

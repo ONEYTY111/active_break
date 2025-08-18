@@ -20,6 +20,7 @@ class ActivityProvider with ChangeNotifier {
   Duration _totalDuration = Duration.zero;
   Duration _remainingTime = Duration.zero;
   bool _needsAutoComplete = false;
+  bool _isSaving = false; // 防止重复保存
 
   List<PhysicalActivity> get activities => _activities;
   List<ActivityRecord> get recentRecords => _recentRecords;
@@ -30,7 +31,8 @@ class ActivityProvider with ChangeNotifier {
   Duration get elapsedTime => _elapsedTime;
   Duration get remainingTime => _remainingTime;
   Duration get totalDuration => _totalDuration;
-  bool get isCountdownFinished => _remainingTime == Duration.zero && _totalDuration > Duration.zero;
+  bool get isCountdownFinished =>
+      _remainingTime == Duration.zero && _totalDuration > Duration.zero;
   bool get needsAutoComplete => _needsAutoComplete;
 
   Future<void> loadActivities() async {
@@ -172,7 +174,7 @@ class ActivityProvider with ChangeNotifier {
     _currentActivityId = activityId;
     _timerStartTime = DateTime.now();
     _elapsedTime = Duration.zero;
-    
+
     // 获取活动的默认时长（分钟转换为秒）
     final activity = _activities.firstWhere(
       (a) => a.activityTypeId == activityId,
@@ -180,7 +182,7 @@ class ActivityProvider with ChangeNotifier {
     );
     _totalDuration = Duration(minutes: activity.defaultDuration);
     _remainingTime = _totalDuration;
-    
+
     notifyListeners();
   }
 
@@ -199,7 +201,7 @@ class ActivityProvider with ChangeNotifier {
     if (_isTimerRunning && _timerStartTime != null) {
       _elapsedTime = DateTime.now().difference(_timerStartTime!);
       _remainingTime = _totalDuration - _elapsedTime;
-      
+
       // 如果倒计时结束，自动完成运动
       if (_remainingTime.isNegative || _remainingTime == Duration.zero) {
         _remainingTime = Duration.zero;
@@ -207,18 +209,18 @@ class ActivityProvider with ChangeNotifier {
         // 标记为需要自动保存
         _autoCompleteTimer();
       }
-      
+
       notifyListeners();
     }
   }
-  
+
   void _autoCompleteTimer() {
     // 标记需要自动完成，ExerciseScreen将监听这个状态
     _needsAutoComplete = true;
     _isTimerRunning = false;
     notifyListeners();
   }
-  
+
   void clearAutoCompleteFlag() {
     _needsAutoComplete = false;
     notifyListeners();
@@ -226,7 +228,13 @@ class ActivityProvider with ChangeNotifier {
 
   Future<bool> saveActivityRecord(int userId) async {
     // 允许在自动完成时保存记录，即使计时器已停止
-    if (_timerStartTime == null || (_currentActivityId == 0 && !_needsAutoComplete)) return false;
+    if (_timerStartTime == null ||
+        (_currentActivityId == 0 && !_needsAutoComplete))
+      return false;
+
+    // 防止重复保存
+    if (_isSaving) return false;
+    _isSaving = true;
 
     try {
       final activity = _activities.firstWhere(
@@ -237,9 +245,11 @@ class ActivityProvider with ChangeNotifier {
       final durationMinutes = _elapsedTime.inMinutes;
       final caloriesBurned = (durationMinutes * activity.caloriesPerMinute)
           .round();
-      
+
       // Debug print for calorie calculation
-      print('卡路里计算: 时长=${durationMinutes}分钟, 每分钟卡路里=${activity.caloriesPerMinute}, 总卡路里=${caloriesBurned}');
+      print(
+        '卡路里计算: 时长=${durationMinutes}分钟, 每分钟卡路里=${activity.caloriesPerMinute}, 总卡路里=${caloriesBurned}',
+      );
 
       final record = ActivityRecord(
         userId: userId,
@@ -255,7 +265,9 @@ class ActivityProvider with ChangeNotifier {
       // Debug print for recent records
       print('保存活动记录后，最近记录数量: ${_recentRecords.length}');
       for (var record in _recentRecords) {
-        print('  记录: 活动ID=${record.activityTypeId}, 开始时间=${record.beginTime}, 结束时间=${record.endTime}');
+        print(
+          '  记录: 活动ID=${record.activityTypeId}, 开始时间=${record.beginTime}, 结束时间=${record.endTime}',
+        );
       }
 
       // Reload recent records
@@ -263,7 +275,7 @@ class ActivityProvider with ChangeNotifier {
 
       // Stop timer
       stopTimer();
-      
+
       // 清除自动完成标志
       _needsAutoComplete = false;
 
@@ -274,6 +286,8 @@ class ActivityProvider with ChangeNotifier {
     } catch (e) {
       debugPrint('Error saving activity record: $e');
       return false;
+    } finally {
+      _isSaving = false;
     }
   }
 

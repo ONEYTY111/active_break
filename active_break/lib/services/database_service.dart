@@ -164,7 +164,20 @@ class DatabaseService {
         )
       ''');
 
-      // 6) 确保用户成就表存在
+      // 6) 确保成就国际化表存在
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS achievements_i18n (
+          id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+          achievement_id INTEGER NOT NULL,
+          language_code VARCHAR(10) NOT NULL,
+          name VARCHAR(100) NOT NULL,
+          description TEXT NOT NULL,
+          FOREIGN KEY (achievement_id) REFERENCES achievements(achievement_id),
+          UNIQUE(achievement_id, language_code)
+        )
+      ''');
+
+      // 7) 确保用户成就表存在
       await db.execute('''
         CREATE TABLE IF NOT EXISTS user_achievements (
           user_achievement_id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
@@ -183,7 +196,9 @@ class DatabaseService {
       ''');
 
       // 7) 插入预定义成就
+      debugPrint('=== 开始插入预定义成就 ===');
       await _insertPredefinedAchievements(db);
+      debugPrint('=== 预定义成就插入完成 ===');
       
       // 8) 更新运动数据和国际化表（仅在没有数据时插入）
       await _updateActivitiesAndI18nData(db);
@@ -943,12 +958,71 @@ class DatabaseService {
           await db.insert('achievements', achievement);
         }
         
+        // 插入成就国际化数据
+        await _insertAchievementI18nData(db);
+        
         debugPrint('预定义成就插入完成，共插入 ${achievements.length} 个成就');
       } else {
         debugPrint('成就数据已存在，跳过插入');
       }
+      
+      // 无论成就数据是否存在，都检查并插入国际化数据
+      await _insertAchievementI18nData(db);
     } catch (e) {
       debugPrint('插入预定义成就时出错: $e');
+    }
+  }
+
+  Future<void> _insertAchievementI18nData(Database db) async {
+    try {
+      debugPrint('=== 开始检查成就国际化数据 ===');
+      // 检查是否已经有成就国际化数据
+      final count = await db.rawQuery('SELECT COUNT(*) as count FROM achievements_i18n');
+      final i18nCount = count.first['count'] as int;
+      debugPrint('当前成就国际化数据条数: $i18nCount');
+      
+      if (i18nCount == 0) {
+        // 成就国际化数据
+        final achievementI18nData = [
+          // 初来乍到
+          {'achievement_id': 1, 'language_code': 'zh', 'name': '初来乍到', 'description': '完成第一次打卡'},
+          {'achievement_id': 1, 'language_code': 'en', 'name': 'First Timer', 'description': 'Complete your first check-in'},
+          
+          // 坚持一周
+          {'achievement_id': 2, 'language_code': 'zh', 'name': '坚持一周', 'description': '连续打卡7天'},
+          {'achievement_id': 2, 'language_code': 'en', 'name': 'Week Warrior', 'description': 'Check in for 7 consecutive days'},
+          
+          // 月度达人
+          {'achievement_id': 3, 'language_code': 'zh', 'name': '月度达人', 'description': '连续打卡30天'},
+          {'achievement_id': 3, 'language_code': 'en', 'name': 'Monthly Master', 'description': 'Check in for 30 consecutive days'},
+          
+          // 运动新手
+          {'achievement_id': 4, 'language_code': 'zh', 'name': '运动新手', 'description': '完成第一次运动'},
+          {'achievement_id': 4, 'language_code': 'en', 'name': 'Exercise Beginner', 'description': 'Complete your first exercise'},
+          
+          // 运动达人
+          {'achievement_id': 5, 'language_code': 'zh', 'name': '运动达人', 'description': '连续运动7天'},
+          {'achievement_id': 5, 'language_code': 'en', 'name': 'Exercise Expert', 'description': 'Exercise for 7 consecutive days'},
+          
+          // 卡路里杀手
+          {'achievement_id': 6, 'language_code': 'zh', 'name': '卡路里杀手', 'description': '累计消耗1000卡路里'},
+          {'achievement_id': 6, 'language_code': 'en', 'name': 'Calorie Crusher', 'description': 'Burn a total of 1000 calories'},
+          
+          // 时间管理大师
+          {'achievement_id': 7, 'language_code': 'zh', 'name': '时间管理大师', 'description': '累计运动时间达到10小时'},
+          {'achievement_id': 7, 'language_code': 'en', 'name': 'Time Master', 'description': 'Accumulate 10 hours of exercise time'},
+        ];
+        
+        for (final data in achievementI18nData) {
+          await db.insert('achievements_i18n', data);
+        }
+        
+        debugPrint('成就国际化数据插入完成，共插入 ${achievementI18nData.length} 条记录');
+      } else {
+        debugPrint('成就国际化数据已存在，跳过插入');
+      }
+    } catch (e) {
+      debugPrint('插入成就国际化数据时出错: $e');
     }
   }
 
@@ -963,15 +1037,26 @@ class DatabaseService {
     );
   }
 
-  Future<List<Map<String, dynamic>>> getUserAchievements(int userId) async {
+  Future<List<Map<String, dynamic>>> getUserAchievements(int userId, [String languageCode = 'zh']) async {
     final db = await database;
     return await db.rawQuery('''
-      SELECT a.*, ua.is_achieved, ua.current_progress, ua.achieved_at
+      SELECT 
+        a.achievement_id,
+        a.icon,
+        a.type,
+        a.target_value,
+        a.created_at,
+        COALESCE(ai.name, a.name) as name,
+        COALESCE(ai.description, a.description) as description,
+        ua.is_achieved, 
+        ua.current_progress, 
+        ua.achieved_at
       FROM achievements a
+      LEFT JOIN achievements_i18n ai ON a.achievement_id = ai.achievement_id AND ai.language_code = ?
       LEFT JOIN user_achievements ua ON a.achievement_id = ua.achievement_id AND ua.user_id = ? AND ua.deleted = 0
       WHERE a.deleted = 0
       ORDER BY a.achievement_id ASC
-    ''', [userId]);
+    ''', [languageCode, userId]);
   }
 
   Future<void> updateUserAchievement(int userId, int achievementId, int progress, bool isAchieved) async {

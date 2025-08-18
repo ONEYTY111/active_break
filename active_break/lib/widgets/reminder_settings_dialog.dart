@@ -4,14 +4,12 @@ import '../models/reminder_and_tips.dart';
 import '../providers/activity_provider.dart';
 import '../providers/user_provider.dart';
 import '../utils/app_localizations.dart';
+import '../services/reminder_scheduler_service.dart' as scheduler;
 
 class ReminderSettingsDialog extends StatefulWidget {
   final int activityTypeId;
 
-  const ReminderSettingsDialog({
-    super.key,
-    required this.activityTypeId,
-  });
+  const ReminderSettingsDialog({super.key, required this.activityTypeId});
 
   @override
   State<ReminderSettingsDialog> createState() => _ReminderSettingsDialogState();
@@ -33,14 +31,17 @@ class _ReminderSettingsDialogState extends State<ReminderSettingsDialog> {
 
   Future<void> _loadExistingSettings() async {
     final userProvider = Provider.of<UserProvider>(context, listen: false);
-    final activityProvider = Provider.of<ActivityProvider>(context, listen: false);
-    
+    final activityProvider = Provider.of<ActivityProvider>(
+      context,
+      listen: false,
+    );
+
     if (userProvider.currentUser != null) {
       final existing = await activityProvider.getReminderSetting(
         userProvider.currentUser!.userId!,
         widget.activityTypeId,
       );
-      
+
       if (existing != null && mounted) {
         setState(() {
           _enabled = existing.enabled;
@@ -55,8 +56,11 @@ class _ReminderSettingsDialogState extends State<ReminderSettingsDialog> {
 
   Future<void> _saveSettings() async {
     final userProvider = Provider.of<UserProvider>(context, listen: false);
-    final activityProvider = Provider.of<ActivityProvider>(context, listen: false);
-    
+    final activityProvider = Provider.of<ActivityProvider>(
+      context,
+      listen: false,
+    );
+
     if (userProvider.currentUser == null) return;
 
     setState(() {
@@ -97,6 +101,26 @@ class _ReminderSettingsDialogState extends State<ReminderSettingsDialog> {
       setting,
     );
 
+    // 更新提醒调度
+    try {
+      final schedulerService = scheduler.ReminderSchedulerService();
+      await schedulerService.initialize();
+
+      if (_enabled) {
+        // 启用提醒时，安排提醒任务
+        await schedulerService.scheduleReminders(
+          userProvider.currentUser!.userId!,
+        );
+      } else {
+        // 禁用提醒时，取消该用户的提醒
+        await schedulerService.cancelReminders(
+          userProvider.currentUser!.userId!,
+        );
+      }
+    } catch (e) {
+      debugPrint('更新提醒调度失败: $e');
+    }
+
     setState(() {
       _isLoading = false;
     });
@@ -105,7 +129,9 @@ class _ReminderSettingsDialogState extends State<ReminderSettingsDialog> {
       Navigator.of(context).pop();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(AppLocalizations.of(context).translate('reminder_saved')),
+          content: Text(
+            AppLocalizations.of(context).translate('reminder_saved'),
+          ),
           backgroundColor: Colors.green,
         ),
       );
@@ -122,7 +148,9 @@ class _ReminderSettingsDialogState extends State<ReminderSettingsDialog> {
           children: [
             // Enable reminder switch
             SwitchListTile(
-              title: Text(AppLocalizations.of(context).translate('enable_reminder')),
+              title: Text(
+                AppLocalizations.of(context).translate('enable_reminder'),
+              ),
               value: _enabled,
               onChanged: (value) {
                 setState(() {
@@ -156,16 +184,38 @@ class _ReminderSettingsDialogState extends State<ReminderSettingsDialog> {
               DropdownButtonFormField<int>(
                 value: _intervalWeek,
                 decoration: InputDecoration(
-                  labelText: 'Repeat every',
+                  labelText: AppLocalizations.of(
+                    context,
+                  ).translate('repeat_every'),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
                   ),
                 ),
                 items: [
-                  DropdownMenuItem(value: 1, child: Text('Every day')),
-                  DropdownMenuItem(value: 2, child: Text('Every 2 days')),
-                  DropdownMenuItem(value: 3, child: Text('Every 3 days')),
-                  DropdownMenuItem(value: 7, child: Text('Weekly')),
+                  DropdownMenuItem(
+                    value: 1,
+                    child: Text(
+                      AppLocalizations.of(context).translate('every_day'),
+                    ),
+                  ),
+                  DropdownMenuItem(
+                    value: 2,
+                    child: Text(
+                      AppLocalizations.of(context).translate('every_2_days'),
+                    ),
+                  ),
+                  DropdownMenuItem(
+                    value: 3,
+                    child: Text(
+                      AppLocalizations.of(context).translate('every_3_days'),
+                    ),
+                  ),
+                  DropdownMenuItem(
+                    value: 7,
+                    child: Text(
+                      AppLocalizations.of(context).translate('weekly'),
+                    ),
+                  ),
                 ],
                 onChanged: (value) {
                   if (value != null) {
@@ -182,7 +232,9 @@ class _ReminderSettingsDialogState extends State<ReminderSettingsDialog> {
                 children: [
                   Expanded(
                     child: ListTile(
-                      title: Text(AppLocalizations.of(context).translate('start_time')),
+                      title: Text(
+                        AppLocalizations.of(context).translate('start_time'),
+                      ),
                       subtitle: Text(_startTime.format(context)),
                       onTap: () async {
                         final time = await showTimePicker(
@@ -199,7 +251,9 @@ class _ReminderSettingsDialogState extends State<ReminderSettingsDialog> {
                   ),
                   Expanded(
                     child: ListTile(
-                      title: Text(AppLocalizations.of(context).translate('end_time')),
+                      title: Text(
+                        AppLocalizations.of(context).translate('end_time'),
+                      ),
                       subtitle: Text(_endTime.format(context)),
                       onTap: () async {
                         final time = await showTimePicker(
