@@ -74,7 +74,7 @@ INSERT INTO health_tips_templates (language_code, category, content) VALUES
 -- 9. 创建用户设置表
 CREATE TABLE IF NOT EXISTS user_settings (
     user_id INTEGER PRIMARY KEY,
-    language_preference VARCHAR(10) DEFAULT 'zh',
+    language_preference VARCHAR(10) DEFAULT 'en',
     theme_preference VARCHAR(20) DEFAULT 'system',
     notification_enabled BOOLEAN DEFAULT TRUE,
     reminder_sound BOOLEAN DEFAULT TRUE,
@@ -85,4 +85,4 @@ CREATE TABLE IF NOT EXISTS user_settings (
 
 -- 10. 为现有用户创建默认设置
 INSERT OR IGNORE INTO user_settings (user_id, language_preference, theme_preference)
-SELECT user_id, 'zh', 'system' FROM users WHERE deleted = 0;
+SELECT user_id, 'en', 'system' FROM users WHERE deleted = 0;

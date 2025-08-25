@@ -20,21 +20,21 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await dotenv.load(fileName: ".env");
 
-  // 初始化通知服务
+  // Initialize notification service
   try {
     final notificationService = NotificationService();
     await notificationService.initialize();
 
-    // 请求通知权限
+    // Request notification permissions
     await notificationService.requestPermissions();
 
-    // 初始化提醒调度服务
+    // Initialize reminder scheduler service
     final schedulerService = ReminderSchedulerService();
     await schedulerService.initialize();
 
-    debugPrint('通知服务和提醒调度服务初始化完成');
+    debugPrint('Notification service and reminder scheduler service initialization completed');
   } catch (e) {
-    debugPrint('初始化通知服务失败: $e');
+    debugPrint('Failed to initialize notification service: $e');
   }
 
   runApp(const MyApp());
@@ -76,12 +76,12 @@ class MyApp extends StatelessWidget {
                   '=== Main Consumer: isLoggedIn = ${userProvider.isLoggedIn} ===',
                 );
                 if (userProvider.isLoggedIn) {
-                  print('=== Main Consumer: 返回 MainScreen ===');
+                  print('=== Main Consumer: Returning MainScreen ===');
                   return MainScreen(
                     key: ValueKey('main_${userProvider.currentUser?.userId}'),
                   );
                 } else {
-                  print('=== Main Consumer: 返回 LoginScreen ===');
+                  print('=== Main Consumer: Returning LoginScreen ===');
                   return const LoginScreen();
                 }
               },

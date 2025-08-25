@@ -11,7 +11,7 @@ class UserAchievement {
   final DateTime updatedAt;
   final bool deleted;
   
-  // 关联的成就信息
+  // Associated achievement information
   final Achievement? achievement;
 
   UserAchievement({
@@ -30,7 +30,7 @@ class UserAchievement {
   factory UserAchievement.fromMap(Map<String, dynamic> map) {
     Achievement? achievement;
     
-    // 如果包含成就信息，创建Achievement对象
+    // If achievement information is included, create Achievement object
     if (map.containsKey('name') && map['name'] != null) {
       achievement = Achievement.fromMap(map);
     }
@@ -65,13 +65,13 @@ class UserAchievement {
     };
   }
 
-  // 计算进度百分比
+  // Calculate progress percentage
   double get progressPercentage {
     if (achievement == null || achievement!.targetValue == 0) return 0.0;
     return (currentProgress / achievement!.targetValue).clamp(0.0, 1.0);
   }
 
-  // 是否接近完成（进度超过80%）
+  // Whether close to completion (progress over 80%)
   bool get isNearCompletion {
     return progressPercentage >= 0.8 && !isAchieved;
   }

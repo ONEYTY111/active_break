@@ -17,7 +17,7 @@ class MainScreen extends StatefulWidget {
 
   @override
   State<MainScreen> createState() {
-    print('=== MainScreen: 创建 MainScreen 实例 ===');
+    print('=== MainScreen: Creating MainScreen instance ===');
     return _MainScreenState();
   }
 }
@@ -36,10 +36,10 @@ class _MainScreenState extends State<MainScreen> {
   @override
   void initState() {
     super.initState();
-    print('=== MainScreen: initState 被调用 ===');
-    // 延迟到下一帧执行，避免在构建过程中调用setState
+    print('=== MainScreen: initState called ===');
+    // Delay to next frame to avoid calling setState during build
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      print('=== MainScreen: PostFrameCallback 执行 ===');
+      print('=== MainScreen: PostFrameCallback executed ===');
       _waitForUserAndLoadData();
     });
   }
@@ -47,7 +47,7 @@ class _MainScreenState extends State<MainScreen> {
   Future<void> _waitForUserAndLoadData() async {
     final userProvider = Provider.of<UserProvider>(context, listen: false);
 
-    // 等待UserProvider完成初始化
+    // Wait for UserProvider to complete initialization
     int attempts = 0;
     while (userProvider.isLoading && attempts < 50) {
       await Future.delayed(const Duration(milliseconds: 100));
@@ -58,7 +58,7 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   Future<void> _loadInitialData() async {
-    print('=== MainScreen: 开始加载初始数据 ===');
+    print('=== MainScreen: Starting to load initial data ===');
     final userProvider = Provider.of<UserProvider>(context, listen: false);
     final activityProvider = Provider.of<ActivityProvider>(
       context,
@@ -69,23 +69,23 @@ class _MainScreenState extends State<MainScreen> {
       listen: false,
     );
 
-    print('MainScreen: 当前用户: ${userProvider.currentUser}');
-    print('MainScreen: 登录状态: ${userProvider.isLoggedIn}');
+    print('MainScreen: Current user: ${userProvider.currentUser}');
+    print('MainScreen: Login status: ${userProvider.isLoggedIn}');
 
     if (userProvider.currentUser != null) {
       final userId = userProvider.currentUser!.userId!;
-      print('MainScreen: 为用户ID $userId 加载数据');
+      print('MainScreen: Loading data for user ID $userId');
       await activityProvider.loadActivities();
       await activityProvider.loadRecentRecords(userId);
       await activityProvider.loadCheckinStreak(userId);
       
-      // 初始化成就数据
+      // Initialize achievement data
       achievementProvider.setUserProvider(userProvider);
       await achievementProvider.initialize();
       
-      print('MainScreen: 数据加载完成');
+      print('MainScreen: Data loading completed');
     } else {
-      print('MainScreen: 没有当前用户，跳过数据加载');
+      print('MainScreen: No current user, skipping data loading');
     }
   }
 
@@ -100,7 +100,7 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   Future<void> _showCheckInDialog() async {
-    debugPrint('=== _showCheckInDialog 开始执行 ===');
+    debugPrint('=== _showCheckInDialog starting execution ===');
     final userProvider = Provider.of<UserProvider>(context, listen: false);
     final activityProvider = Provider.of<ActivityProvider>(
       context,
@@ -112,29 +112,29 @@ class _MainScreenState extends State<MainScreen> {
     );
 
     if (userProvider.currentUser == null) {
-      debugPrint('=== 用户未登录，退出打卡流程 ===');
+      debugPrint('=== User not logged in, exiting check-in process ===');
       return;
     }
 
-    debugPrint('=== 开始执行打卡操作，用户ID: ${userProvider.currentUser!.userId} ===');
+    debugPrint('=== Starting check-in operation, user ID: ${userProvider.currentUser!.userId} ===');
     final success = await activityProvider.checkInToday(
       userProvider.currentUser!.userId!,
     );
-    debugPrint('=== 打卡操作结果: $success ===');
+    debugPrint('=== Check-in operation result: $success ===');
 
     List<Achievement> newAchievements = [];
-    // 如果打卡成功，检查成就（但不立即显示弹窗）
+    // If check-in successful, check achievements (but don't show popup immediately)
     if (success) {
       newAchievements = await achievementProvider.checkAndUpdateAchievements();
-      // 重新加载成就数据
+      // Reload achievement data
       await achievementProvider.loadUserAchievements();
       await achievementProvider.loadAchievementStats();
     }
 
     if (mounted) {
-      debugPrint('=== Widget已挂载，准备显示对话框 ===');
+      debugPrint('=== Widget mounted, preparing to show dialog ===');
       if (success) {
-        debugPrint('=== 打卡成功，显示成功对话框 ===');
+        debugPrint('=== Check-in successful, showing success dialog ===');
         showDialog(
           context: context,
           barrierDismissible: false,
@@ -147,7 +147,7 @@ class _MainScreenState extends State<MainScreen> {
             content: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // 庆祝图标和动画效果
+                // Celebration icon and animation effect
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
@@ -158,7 +158,7 @@ class _MainScreenState extends State<MainScreen> {
                 ),
                 const SizedBox(height: 20),
 
-                // 主标题
+                // Main title
                 Text(
                   AppLocalizations.of(
                     context,
@@ -170,7 +170,7 @@ class _MainScreenState extends State<MainScreen> {
                 ),
                 const SizedBox(height: 8),
 
-                // 副标题
+                // Subtitle
                 Text(
                   AppLocalizations.of(context).translate('check_in_success'),
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
@@ -180,7 +180,7 @@ class _MainScreenState extends State<MainScreen> {
                 ),
                 const SizedBox(height: 20),
 
-                // 连续打卡信息
+                // Consecutive check-in information
                 if (activityProvider.checkinStreak != null) ...[
                   Container(
                     padding: const EdgeInsets.symmetric(
@@ -225,15 +225,15 @@ class _MainScreenState extends State<MainScreen> {
                 ],
                 const SizedBox(height: 24),
 
-                // 确认按钮
+                // Confirm button
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
                     onPressed: () {
                       Navigator.of(context).pop();
-                      // 在打卡成功对话框关闭后显示成就弹窗
+                      // Show achievement popup after check-in success dialog closes
                       if (newAchievements.isNotEmpty) {
-                        // 使用WidgetsBinding.instance.addPostFrameCallback确保在下一帧显示
+                        // Use WidgetsBinding.instance.addPostFrameCallback to ensure display in next frame
                         WidgetsBinding.instance.addPostFrameCallback((_) {
                           if (mounted && context.mounted) {
                             AchievementNotification.show(
@@ -266,7 +266,7 @@ class _MainScreenState extends State<MainScreen> {
           ),
         );
       } else {
-        debugPrint('=== 打卡失败或已打卡，显示提示对话框 ===');
+        debugPrint('=== Check-in failed or already checked in, showing alert dialog ===');
         showDialog(
           context: context,
           barrierDismissible: true,
@@ -279,7 +279,7 @@ class _MainScreenState extends State<MainScreen> {
             content: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // 提示图标
+                // Alert icon
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
@@ -294,7 +294,7 @@ class _MainScreenState extends State<MainScreen> {
                 ),
                 const SizedBox(height: 20),
 
-                // 提示文字
+                // Prompt text
                 Text(
                   AppLocalizations.of(context).translate('already_checked_in'),
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
@@ -305,7 +305,7 @@ class _MainScreenState extends State<MainScreen> {
                 ),
                 const SizedBox(height: 16),
 
-                // 副标题
+                // Subtitle
                 Text(
                   AppLocalizations.of(
                     context,
@@ -317,7 +317,7 @@ class _MainScreenState extends State<MainScreen> {
                 ),
                 const SizedBox(height: 24),
 
-                // 确认按钮
+                // Confirm button
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(

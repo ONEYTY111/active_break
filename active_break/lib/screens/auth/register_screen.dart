@@ -154,7 +154,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     labelText: AppLocalizations.of(context).translate('password'),
                     prefixIcon: const Icon(Icons.lock),
                     suffixIcon: IconButton(
-                      icon: Icon(_obscurePassword ? Icons.visibility : Icons.visibility_off),
+                      icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility),
                       onPressed: () {
                         setState(() {
                           _obscurePassword = !_obscurePassword;
@@ -182,7 +182,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     labelText: AppLocalizations.of(context).translate('confirm_password'),
                     prefixIcon: const Icon(Icons.lock_outline),
                     suffixIcon: IconButton(
-                      icon: Icon(_obscureConfirmPassword ? Icons.visibility : Icons.visibility_off),
+                      icon: Icon(_obscureConfirmPassword ? Icons.visibility_off : Icons.visibility),
                       onPressed: () {
                         setState(() {
                           _obscureConfirmPassword = !_obscureConfirmPassword;

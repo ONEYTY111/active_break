@@ -5,6 +5,8 @@ import '../providers/activity_provider.dart';
 import '../providers/user_provider.dart';
 import '../utils/app_localizations.dart';
 import '../services/reminder_scheduler_service.dart' as scheduler;
+import '../services/notification_service.dart';
+import '../utils/notification_test.dart';
 
 class ReminderSettingsDialog extends StatefulWidget {
   final int activityTypeId;
@@ -101,24 +103,24 @@ class _ReminderSettingsDialogState extends State<ReminderSettingsDialog> {
       setting,
     );
 
-    // 更新提醒调度
+    // Update reminder schedule
     try {
       final schedulerService = scheduler.ReminderSchedulerService();
       await schedulerService.initialize();
 
       if (_enabled) {
-        // 启用提醒时，安排提醒任务
+        // Schedule reminder tasks when enabling reminders
         await schedulerService.scheduleReminders(
           userProvider.currentUser!.userId!,
         );
       } else {
-        // 禁用提醒时，取消该用户的提醒
+        // When disabling reminders, cancel reminders for this user
         await schedulerService.cancelReminders(
           userProvider.currentUser!.userId!,
         );
       }
     } catch (e) {
-      debugPrint('更新提醒调度失败: $e');
+      debugPrint('Failed to update reminder scheduling: $e');
     }
 
     setState(() {
@@ -135,6 +137,67 @@ class _ReminderSettingsDialogState extends State<ReminderSettingsDialog> {
           backgroundColor: Colors.green,
         ),
       );
+    }
+  }
+
+  /// Test reminder functionality
+  /// @author 作者
+  /// @date 2024-12-25 当前时间
+  /// @return Future<void>
+  Future<void> _testReminder() async {
+    try {
+      final notificationService = NotificationService();
+      await notificationService.showTestReminder();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(AppLocalizations.of(context).translate('test_reminder_sent')),
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(AppLocalizations.of(context).translate('test_reminder_failed')),
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    }
+  }
+
+  /// Run diagnostic test for notification issues
+  /// @author 作者
+  /// @date 2024-12-25 当前时间
+  /// @return Future<void>
+  Future<void> _runDiagnostic() async {
+    final userProvider = Provider.of<UserProvider>(context, listen: false);
+    if (userProvider.currentUser?.userId == null) return;
+
+    try {
+      final notificationTest = NotificationTest();
+      await notificationTest.runFullDiagnostic(userProvider.currentUser!.userId!);
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('诊断完成，请查看控制台日志'),
+            duration: Duration(seconds: 3),
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint('Diagnostic test failed: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('诊断失败: $e'),
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
     }
   }
 
@@ -278,6 +341,14 @@ class _ReminderSettingsDialogState extends State<ReminderSettingsDialog> {
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
           child: Text(AppLocalizations.of(context).translate('cancel')),
+        ),
+        TextButton(
+          onPressed: _testReminder,
+          child: Text(AppLocalizations.of(context).translate('test_reminder')),
+        ),
+        TextButton(
+          onPressed: _runDiagnostic,
+          child: const Text('诊断'),
         ),
         ElevatedButton(
           onPressed: _isLoading ? null : _saveSettings,

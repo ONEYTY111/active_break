@@ -17,18 +17,18 @@ class NotificationService {
 
   bool _isInitialized = false;
 
-  /// 初始化通知服务
+  /// Initialize notification service
   Future<void> initialize() async {
     if (_isInitialized) return;
 
-    // 初始化时区数据
+    // Initialize timezone data
     tz.initializeTimeZones();
 
-    // Android 初始化设置
+    // Android initialization settings
     const AndroidInitializationSettings initializationSettingsAndroid =
         AndroidInitializationSettings('@mipmap/ic_launcher');
 
-    // iOS 初始化设置
+    // iOS initialization settings
     const DarwinInitializationSettings initializationSettingsIOS =
         DarwinInitializationSettings(
           requestAlertPermission: true,
@@ -36,7 +36,7 @@ class NotificationService {
           requestSoundPermission: true,
         );
 
-    // macOS 初始化设置
+    // macOS initialization settings
     const DarwinInitializationSettings initializationSettingsMacOS =
         DarwinInitializationSettings(
           requestAlertPermission: true,
@@ -57,10 +57,10 @@ class NotificationService {
     );
 
     _isInitialized = true;
-    debugPrint('通知服务初始化完成');
+    debugPrint('Notification service initialization completed');
   }
 
-  /// 请求通知权限
+  /// Request notification permissions
   Future<bool> requestPermissions() async {
     if (defaultTargetPlatform == TargetPlatform.android) {
       final status = await Permission.notification.request();
@@ -77,7 +77,7 @@ class NotificationService {
     return true;
   }
 
-  /// 检查通知权限状态
+  /// Check notification permission status
   Future<bool> hasPermissions() async {
     if (defaultTargetPlatform == TargetPlatform.android) {
       final status = await Permission.notification.status;
@@ -95,7 +95,7 @@ class NotificationService {
     return true;
   }
 
-  /// 显示即时运动提醒通知
+  /// Show immediate exercise reminder notification
   Future<void> showExerciseReminder({
     required int notificationId,
     required String activityName,
@@ -105,14 +105,14 @@ class NotificationService {
       await initialize();
     }
 
-    const String title = '运动提醒';
-    final String body = customMessage ?? '该运动了：$activityName';
+    const String title = 'Exercise Reminder';
+    final String body = customMessage ?? 'Time to exercise: $activityName';
 
     const AndroidNotificationDetails androidPlatformChannelSpecifics =
         AndroidNotificationDetails(
           'exercise_reminders',
-          '运动提醒',
-          channelDescription: '定时运动提醒通知',
+          'Exercise Reminders',
+          channelDescription: 'Scheduled exercise reminder notifications',
           importance: Importance.high,
           priority: Priority.high,
           showWhen: true,
@@ -141,10 +141,10 @@ class NotificationService {
       payload: 'exercise_reminder:$notificationId',
     );
 
-    debugPrint('显示运动提醒通知: $title - $body');
+    debugPrint('Showing exercise reminder notification: $title - $body');
   }
 
-  /// 安排定时运动提醒通知
+  /// Schedule timed exercise reminder notification
   Future<void> scheduleExerciseReminder({
     required int notificationId,
     required DateTime scheduledDate,
@@ -155,14 +155,14 @@ class NotificationService {
       await initialize();
     }
 
-    const String title = '运动提醒';
-    final String body = customMessage ?? '该运动了：$activityName';
+    const String title = 'Exercise Reminder';
+    final String body = customMessage ?? 'Time to exercise: $activityName';
 
     const AndroidNotificationDetails androidPlatformChannelSpecifics =
         AndroidNotificationDetails(
           'exercise_reminders',
-          '运动提醒',
-          channelDescription: '定时运动提醒通知',
+          'Exercise Reminders',
+          channelDescription: 'Scheduled exercise reminder notifications',
           importance: Importance.high,
           priority: Priority.high,
           showWhen: true,
@@ -195,46 +195,58 @@ class NotificationService {
       payload: 'exercise_reminder:$notificationId',
     );
 
-    debugPrint('安排运动提醒通知: $title - $body，时间: $scheduledDate');
+    debugPrint('Scheduled exercise reminder notification: $title - $body, time: $scheduledDate');
   }
 
-  /// 取消指定的通知
+  /// Cancel specified notification
   Future<void> cancelNotification(int notificationId) async {
     await _flutterLocalNotificationsPlugin.cancel(notificationId);
-    debugPrint('取消通知: $notificationId');
+    debugPrint('Cancel notification: $notificationId');
   }
 
-  /// 取消所有通知
+  /// Cancel all notifications
   Future<void> cancelAllNotifications() async {
     await _flutterLocalNotificationsPlugin.cancelAll();
-    debugPrint('取消所有通知');
+    debugPrint('Cancel all notifications');
   }
 
-  /// 获取待处理的通知列表
+  /// Get pending notification list
   Future<List<PendingNotificationRequest>> getPendingNotifications() async {
     return await _flutterLocalNotificationsPlugin.pendingNotificationRequests();
   }
 
-  /// 处理通知点击事件
+  /// Handle notification click event
   void _onNotificationTapped(NotificationResponse notificationResponse) {
     final String? payload = notificationResponse.payload;
-    debugPrint('通知被点击: $payload');
+    debugPrint('Notification clicked: $payload');
 
     if (payload != null && payload.startsWith('exercise_reminder:')) {
-      // 处理运动提醒通知点击
-      // 可以导航到运动页面或显示运动选择对话框
+      // Handle exercise reminder notification click
+// Can navigate to exercise page or show exercise selection dialog
       _handleExerciseReminderTap(payload);
     }
   }
 
-  /// 处理运动提醒通知点击
+  /// Handle exercise reminder notification click
   void _handleExerciseReminderTap(String payload) {
-    // 这里可以添加导航逻辑，比如打开运动页面
-    // 由于这是服务类，可以通过事件总线或回调来通知UI层
-    debugPrint('处理运动提醒点击: $payload');
+    // Navigation logic can be added here, such as opening exercise page
+// Since this is a service class, UI layer can be notified through event bus or callback
+    debugPrint('Handle exercise reminder click: $payload');
   }
 
-  /// 生成唯一的通知ID
+  /// Show test reminder notification
+/// @author Author
+/// @date Current date and time
+  /// @return Future<void>
+  Future<void> showTestReminder() async {
+    await showExerciseReminder(
+      notificationId: 9999,
+      activityName: 'Test Exercise',
+      customMessage: 'This is a test reminder. If you see this message, the reminder function is working properly!',
+    );
+  }
+
+  /// Generate unique notification ID
   static int generateNotificationId(int userId, int activityTypeId) {
     return userId * 1000 + activityTypeId;
   }

@@ -23,41 +23,41 @@ class AchievementProvider with ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get error => _error;
 
-  /// 设置UserProvider
+  /// Set UserProvider
   void setUserProvider(UserProvider userProvider) {
     _userProvider = userProvider;
   }
 
-  // 获取已达成的成就
+  // Get achieved achievements
   List<UserAchievement> get achievedAchievements {
     return _userAchievements.where((ua) => ua.isAchieved).toList();
   }
 
-  // 获取未达成的成就
+  // Get unachieved achievements
   List<UserAchievement> get unachievedAchievements {
     return _userAchievements.where((ua) => !ua.isAchieved).toList();
   }
 
-  // 获取接近完成的成就
+  // Get near completion achievements
   List<UserAchievement> get nearCompletionAchievements {
     return _userAchievements.where((ua) => ua.isNearCompletion).toList();
   }
 
-  // 获取成就完成率
+  // Get achievement completion rate
   double get completionRate {
     if (_userAchievements.isEmpty) return 0.0;
     final achieved = achievedAchievements.length;
     return achieved / _userAchievements.length;
   }
 
-  /// 初始化成就数据
+  /// Initialize achievement data
   Future<void> initialize() async {
     await loadUserAchievements();
     await loadAllAchievements();
     await loadAchievementStats();
   }
 
-  /// 加载用户成就
+  /// Load user achievements
   Future<void> loadUserAchievements([String? languageCode]) async {
     try {
       _setLoading(true);
@@ -65,27 +65,27 @@ class AchievementProvider with ChangeNotifier {
 
       final currentUser = _userProvider?.currentUser;
       if (currentUser != null) {
-        // 如果没有提供语言代码，使用默认的中文
+        // If no language code provided, use default Chinese
         final langCode = languageCode ?? 'zh';
         _userAchievements = await _achievementService.getUserAchievements(
           currentUser.userId!,
           langCode,
         );
 
-        // 对成就进行排序：已完成的在前面，未完成的在后面
+        // Sort achievements: completed ones first, then incomplete ones
         _userAchievements.sort((a, b) {
-          // 如果一个已完成，一个未完成，已完成的排在前面
+          // If one is completed and one is not, completed comes first
           if (a.isAchieved && !b.isAchieved) return -1;
           if (!a.isAchieved && b.isAchieved) return 1;
 
-          // 如果都已完成，按完成时间倒序排列（最新完成的在前面）
+          // If both are completed, sort by completion time in descending order (latest first)
           if (a.isAchieved && b.isAchieved) {
             if (a.achievedAt != null && b.achievedAt != null) {
               return b.achievedAt!.compareTo(a.achievedAt!);
             }
           }
 
-          // 如果都未完成，按进度倒序排列（进度高的在前面）
+          // If both are incomplete, sort by progress in descending order (higher progress first)
           if (!a.isAchieved && !b.isAchieved) {
             return b.currentProgress.compareTo(a.currentProgress);
           }
@@ -98,24 +98,24 @@ class AchievementProvider with ChangeNotifier {
 
       notifyListeners();
     } catch (e) {
-      _setError('加载用户成就失败: $e');
-      debugPrint('加载用户成就失败: $e');
+      _setError('Failed to load user achievements: $e');
+      debugPrint('Failed to load user achievements: $e');
     } finally {
       _setLoading(false);
     }
   }
 
-  /// 加载所有成就
+  /// Load all achievements
   Future<void> loadAllAchievements() async {
     try {
       _allAchievements = await _achievementService.getAllAchievements();
       notifyListeners();
     } catch (e) {
-      debugPrint('加载所有成就失败: $e');
+      debugPrint('Failed to load all achievements: $e');
     }
   }
 
-  /// 加载成就统计信息
+  /// Load achievement statistics
   Future<void> loadAchievementStats() async {
     try {
       final currentUser = _userProvider?.currentUser;
@@ -128,36 +128,36 @@ class AchievementProvider with ChangeNotifier {
       }
       notifyListeners();
     } catch (e) {
-      debugPrint('加载成就统计失败: $e');
+      debugPrint('Failed to load achievement statistics: $e');
     }
   }
 
-  /// 检查并更新成就（在用户操作后调用）
+  /// Check and update achievements (called after user operations)
   Future<List<Achievement>> checkAndUpdateAchievements() async {
     try {
       final currentUser = _userProvider?.currentUser;
       if (currentUser == null) return [];
 
-      // 检查新达成的成就
+      // Check newly achieved achievements
       final newlyAchieved = await _achievementService
           .checkAndUpdateAchievements(currentUser.userId!);
 
-      // 重新加载数据
+      // Reload data
       await loadUserAchievements();
       await loadAchievementStats();
 
       return newlyAchieved;
     } catch (e) {
-      debugPrint('检查成就失败: $e');
+      debugPrint('Failed to check achievements: $e');
       return [];
     }
   }
 
-  /// 在打卡后检查成就
+  /// Check achievements after check-in
   Future<List<Achievement>> checkAchievementsAfterCheckin([
     BuildContext? context,
   ]) async {
-    debugPrint('检查打卡相关成就');
+    debugPrint('Checking check-in related achievements');
     final newAchievements = await checkAndUpdateAchievements();
 
     if (newAchievements.isNotEmpty && context != null) {
@@ -167,11 +167,11 @@ class AchievementProvider with ChangeNotifier {
     return newAchievements;
   }
 
-  /// 在运动后检查成就
+  /// Check achievements after exercise
   Future<List<Achievement>> checkAchievementsAfterExercise([
     BuildContext? context,
   ]) async {
-    debugPrint('检查运动相关成就');
+    debugPrint('Checking exercise related achievements');
     final newAchievements = await checkAndUpdateAchievements();
 
     if (newAchievements.isNotEmpty && context != null) {
@@ -181,14 +181,14 @@ class AchievementProvider with ChangeNotifier {
     return newAchievements;
   }
 
-  /// 获取特定类型的成就
+  /// Get achievements of specific type
   List<UserAchievement> getAchievementsByType(String type) {
     return _userAchievements
         .where((ua) => ua.achievement?.type == type)
         .toList();
   }
 
-  /// 获取特定成就的详细信息
+  /// Get detailed information of specific achievement
   UserAchievement? getAchievementById(int achievementId) {
     try {
       return _userAchievements.firstWhere(
@@ -199,12 +199,12 @@ class AchievementProvider with ChangeNotifier {
     }
   }
 
-  /// 刷新所有数据
+  /// Refresh all data
   Future<void> refresh() async {
     await initialize();
   }
 
-  /// 重置用户成就（用于测试）
+  /// Reset user achievements (for testing)
   Future<void> resetAchievements() async {
     try {
       final currentUser = _userProvider?.currentUser;
@@ -213,35 +213,35 @@ class AchievementProvider with ChangeNotifier {
         await refresh();
       }
     } catch (e) {
-      debugPrint('重置成就失败: $e');
+      debugPrint('Failed to reset achievements: $e');
     }
   }
 
-  /// 设置加载状态
+  /// Set loading state
   void _setLoading(bool loading) {
     _isLoading = loading;
     notifyListeners();
   }
 
-  /// 设置错误信息
+  /// Set error message
   void _setError(String? error) {
     _error = error;
     notifyListeners();
   }
 
-  /// 清除错误信息
+  /// Clear error message
   void clearError() {
     _setError(null);
   }
 
-  /// 显示成就达成通知
+  /// Show achievement notification
   void showAchievementNotification(Achievement achievement) {
-    // 这里可以集成通知系统或显示弹窗
-    debugPrint('🎉 恭喜！您获得了新成就: ${achievement.name}');
-    debugPrint('成就描述: ${achievement.description}');
+    // This can integrate notification system or show popup
+    debugPrint('🎉 Congratulations! New achievement unlocked: ${achievement.name}');
+    debugPrint('Achievement description: ${achievement.description}');
   }
 
-  /// 批量显示成就达成通知
+  /// Show multiple achievement notifications
   void showMultipleAchievementNotifications(List<Achievement> achievements) {
     for (final achievement in achievements) {
       showAchievementNotification(achievement);

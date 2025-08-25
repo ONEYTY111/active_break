@@ -47,6 +47,7 @@ class AppLocalizations {
       'login_failed': '登录失败，请检查用户名和密码',
       'register_failed': '注册失败，用户名或邮箱可能已存在',
       'no_account_register': '没有账号？立即注册',
+      'logout_confirm': '确定要退出登录吗？',
 
       // Navigation
       'home': '首页',
@@ -102,6 +103,14 @@ class AppLocalizations {
       // Recommend
       'daily_tips': '每日健康建议',
       'no_tips_today': '今日暂无建议',
+      'health_tip': '健康建议',
+      'daily_tips_generated_at_midnight': '每日健康建议将在午夜自动生成',
+      'test_reminder': '测试提醒',
+      'test_reminder_sent': '测试提醒已发送',
+      'test_reminder_failed': '测试提醒发送失败',
+      'unknown_activity': '未知运动',
+      'already_exercising': '已经在进行{activity}了，请先完成当前运动',
+      'save_record_failed': '保存记录失败',
 
       // Profile
       'personal_info': '个人信息',
@@ -198,6 +207,7 @@ class AppLocalizations {
       'register_failed':
           'Registration failed, username or email may already exist',
       'no_account_register': 'No account? Register now',
+      'logout_confirm': 'Are you sure you want to logout?',
 
       // Navigation
       'home': 'Home',
@@ -255,6 +265,14 @@ class AppLocalizations {
       // Recommend
       'daily_tips': 'Daily Health Tips',
       'no_tips_today': 'No tips for today',
+      'health_tip': 'Health Tip',
+      'daily_tips_generated_at_midnight': 'Daily health tips will be generated at midnight',
+      'test_reminder': 'Test Reminder',
+      'test_reminder_sent': 'Test reminder sent successfully',
+      'test_reminder_failed': 'Failed to send test reminder',
+      'unknown_activity': 'Unknown Activity',
+      'already_exercising': 'Already exercising {activity}, please complete current activity first',
+      'save_record_failed': 'Failed to save record',
 
       // Profile
       'personal_info': 'Personal Information',

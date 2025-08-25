@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/reminder_and_tips.dart';
 import '../models/physical_activity.dart';
 import '../services/database_service.dart';
@@ -20,36 +21,36 @@ class TipsProvider with ChangeNotifier {
   bool get isLoading => _isLoading;
 
   Future<void> loadTodayTips(int userId) async {
-    debugPrint('=== 开始加载用户推荐 ===');
-    debugPrint('用户ID: $userId');
+    debugPrint('=== Starting to load user recommendations ===');
+    debugPrint('User ID: $userId');
     
     _isLoading = true;
     notifyListeners();
     
     try {
       _todayTips = await _databaseService.getTodayUserTips(userId);
-      debugPrint('数据库中已有 ${_todayTips.length} 条今日推荐');
+      debugPrint('Found ${_todayTips.length} existing recommendations in database');
       
       // If no tips for today, generate some
       if (_todayTips.isEmpty) {
-        debugPrint('今日暂无推荐，开始生成新推荐...');
+        debugPrint('No recommendations for today, generating new ones...');
         await _generateDailyTips(userId);
         _todayTips = await _databaseService.getTodayUserTips(userId);
-        debugPrint('新生成并加载了 ${_todayTips.length} 条推荐');
+        debugPrint('Generated and loaded ${_todayTips.length} new recommendations');
       } else {
-        debugPrint('加载了已有的 ${_todayTips.length} 条推荐');
+        debugPrint('Loaded ${_todayTips.length} existing recommendations');
       }
       
-      // 打印推荐内容摘要
+      // Print recommendation content summary
       for (int i = 0; i < _todayTips.length; i++) {
         final content = _todayTips[i].content;
-        debugPrint('推荐 ${i + 1}: ${content.substring(0, content.length > 30 ? 30 : content.length)}...');
+        debugPrint('Recommendation ${i + 1}: ${content.substring(0, content.length > 30 ? 30 : content.length)}...');
       }
       
-      debugPrint('=== 推荐加载完成 ===');
+      debugPrint('=== Recommendations loading completed ===');
     } catch (e) {
-      debugPrint('=== 推荐加载失败 ===');
-      debugPrint('错误详情: $e');
+      debugPrint('=== Recommendations loading failed ===');
+      debugPrint('Error details: $e');
     }
     
     _isLoading = false;
@@ -57,19 +58,19 @@ class TipsProvider with ChangeNotifier {
   }
 
   Future<void> _generateDailyTips(int userId) async {
-    debugPrint('=== 开始生成每日推荐 ===');
-    debugPrint('目标用户ID: $userId');
+    debugPrint('=== Starting to generate daily recommendations ===');
+    debugPrint('Target user ID: $userId');
     
     try {
       List<String> tips;
       
       // Generate personalized tips using OpenAI API based on user's activity history
-      debugPrint('调用 OpenAI API 生成个性化推荐...');
+      debugPrint('Calling OpenAI API to generate personalized recommendations...');
       tips = await _generateTipsWithOpenAI(userId);
-      debugPrint('成功生成 ${tips.length} 条推荐');
+      debugPrint('Successfully generated ${tips.length} recommendations');
       
       final today = DateTime.now();
-      debugPrint('开始保存推荐到数据库，日期: ${today.toIso8601String()}');
+      debugPrint('Starting to save recommendations to database, date: ${today.toIso8601String()}');
       
       for (int i = 0; i < tips.length; i++) {
         final tipContent = tips[i];
@@ -79,35 +80,60 @@ class TipsProvider with ChangeNotifier {
           content: tipContent,
         );
         await _databaseService.insertUserTip(tip);
-        debugPrint('已保存第 ${i + 1} 条推荐: ${tipContent.substring(0, tipContent.length > 50 ? 50 : tipContent.length)}...');
+        debugPrint('Saved recommendation ${i + 1}: ${tipContent.substring(0, tipContent.length > 50 ? 50 : tipContent.length)}...');
       }
       
-      debugPrint('=== 每日推荐生成完成 ===');
+      debugPrint('=== Daily recommendations generation completed ===');
     } catch (e) {
-      debugPrint('=== 每日推荐生成失败 ===');
-      debugPrint('错误详情: $e');
+      debugPrint('=== Daily recommendations generation failed ===');
+      debugPrint('Error details: $e');
     }
   }
 
   Future<List<String>> _generateMockTips() async {
-    // Mock health tips - in a real app, this would call OpenAI API
-    final allTips = [
-      'Stay hydrated by drinking at least 8 glasses of water throughout the day.',
-      'Take a 5-minute break every hour to stretch and move around.',
-      'Practice deep breathing exercises to reduce stress and improve focus.',
-      'Get 7-9 hours of quality sleep each night for optimal recovery.',
-      'Include protein in every meal to support muscle health and satiety.',
-      'Take the stairs instead of the elevator when possible.',
-      'Spend at least 10 minutes in natural sunlight daily for vitamin D.',
-      'Practice good posture while sitting and standing.',
-      'Eat a variety of colorful fruits and vegetables for essential nutrients.',
-      'Limit screen time before bedtime to improve sleep quality.',
-      'Do some form of physical activity for at least 30 minutes daily.',
-      'Practice mindfulness or meditation for mental well-being.',
-      'Keep healthy snacks like nuts and fruits readily available.',
-      'Maintain social connections for emotional health.',
-      'Listen to your body and rest when you feel tired.',
-    ];
+    // Get current language from SharedPreferences
+    final prefs = await SharedPreferences.getInstance();
+    final languageCode = prefs.getString('language_code') ?? 'zh';
+    
+    // Mock health tips based on language
+    final Map<String, List<String>> tipsByLanguage = {
+      'zh': [
+        'Drink at least 8 glasses of water daily to maintain adequate hydration.',
+        'Stand up and move for 5 minutes every hour to stretch and relieve fatigue.',
+        'Practice deep breathing exercises to reduce stress and improve focus.',
+        'Ensure 7-9 hours of quality sleep each night to promote body recovery.',
+        'Include protein in every meal to support muscle health and satiety.',
+        'Choose stairs over elevators whenever possible.',
+        'Get at least 10 minutes of natural sunlight daily to supplement vitamin D.',
+        'Maintain good posture when sitting and standing, avoid slouching.',
+        'Eat a variety of colorful fruits and vegetables to get essential nutrients.',
+        'Limit screen time before bed to improve sleep quality.',
+        'Engage in at least 30 minutes of physical activity daily.',
+        'Practice mindfulness meditation to promote mental health.',
+        'Keep healthy snacks like nuts and fruits readily available.',
+        'Maintain good social relationships to promote emotional health.',
+        'Listen to your body signals and rest when feeling fatigued.',
+      ],
+      'en': [
+        'Stay hydrated by drinking at least 8 glasses of water throughout the day.',
+        'Take a 5-minute break every hour to stretch and move around.',
+        'Practice deep breathing exercises to reduce stress and improve focus.',
+        'Get 7-9 hours of quality sleep each night for optimal recovery.',
+        'Include protein in every meal to support muscle health and satiety.',
+        'Take the stairs instead of the elevator when possible.',
+        'Spend at least 10 minutes in natural sunlight daily for vitamin D.',
+        'Practice good posture while sitting and standing.',
+        'Eat a variety of colorful fruits and vegetables for essential nutrients.',
+        'Limit screen time before bedtime to improve sleep quality.',
+        'Do some form of physical activity for at least 30 minutes daily.',
+        'Practice mindfulness or meditation for mental well-being.',
+        'Keep healthy snacks like nuts and fruits readily available.',
+        'Maintain social connections for emotional health.',
+        'Listen to your body and rest when you feel tired.',
+      ],
+    };
+    
+    final allTips = tipsByLanguage[languageCode] ?? tipsByLanguage['zh']!;
     
     // Simulate API delay
     await Future.delayed(const Duration(seconds: 1));
@@ -133,26 +159,26 @@ class TipsProvider with ChangeNotifier {
 
   // OpenAI integration implementation
   Future<List<String>> _generateTipsWithOpenAI(int userId) async {
-    debugPrint('=== OpenAI 推荐生成开始 ===');
-    debugPrint('用户ID: $userId');
+    debugPrint('=== OpenAI recommendation generation started ===');
+    debugPrint('User ID: $userId');
     
     try {
       // Get user's activity history for personalization
-      debugPrint('正在获取用户最近20条运动记录...');
+      debugPrint('Fetching user\'s recent 20 activity records...');
       final recentActivities = await _databaseService.getRecentActivityRecords(userId, limit: 20);
-      debugPrint('获取到 ${recentActivities.length} 条运动记录');
+      debugPrint('Retrieved ${recentActivities.length} activity records');
       
       // Build detailed context for OpenAI based on user's recent activities
       String context = "Generate exactly 3 personalized health and fitness tips for a user based on their recent exercise patterns. ";
       
       if (recentActivities.isNotEmpty) {
-        debugPrint('开始分析用户运动模式...');
+        debugPrint('Starting to analyze user activity patterns...');
         // Get activity details to build comprehensive context
         final activityMap = <int, List<ActivityRecord>>{};
         for (final record in recentActivities) {
           activityMap.putIfAbsent(record.activityTypeId, () => []).add(record);
         }
-        debugPrint('运动类型统计: 共 ${activityMap.length} 种不同运动');
+        debugPrint('Activity type statistics: ${activityMap.length} different activities');
         
         // Get activity names and build frequency analysis
         final activityDetails = <String>[];
@@ -166,46 +192,46 @@ class TipsProvider with ChangeNotifier {
           final activity = await _databaseService.getPhysicalActivityById(activityTypeId);
           final activityName = activity?.name ?? 'Unknown Activity';
           
-          final detail = '$activityName (${frequency}次, 总计${totalDuration}分钟)';
+          final detail = '$activityName (${frequency} times, total ${totalDuration} minutes)';
           activityDetails.add(detail);
           debugPrint('  - $detail');
         }
         
-        context += "用户最近的运动记录: ${activityDetails.join(', ')}. ";
+        context += "User's recent exercise records: ${activityDetails.join(', ')}. ";
         
         // Add specific guidance based on activity patterns
         final mostFrequentActivity = activityMap.entries
             .reduce((a, b) => a.value.length > b.value.length ? a : b);
         final mostFrequentActivityName = (await _databaseService.getPhysicalActivityById(mostFrequentActivity.key))?.name ?? 'Unknown';
-        debugPrint('用户最频繁的运动: $mostFrequentActivityName (${mostFrequentActivity.value.length}次)');
+        debugPrint('User\'s most frequent activity: $mostFrequentActivityName (${mostFrequentActivity.value.length} times)');
         
         String specialGuidance = '';
-        if (mostFrequentActivityName.contains('伸展') || mostFrequentActivityName.contains('拉伸')) {
-          specialGuidance = "由于用户频繁进行伸展运动，请优先推送与脊柱健康、肌肉放松、姿势矫正相关的深度内容。";
-          debugPrint('检测到伸展运动模式，将推送脊柱健康相关内容');
-        } else if (mostFrequentActivityName.contains('跑步') || mostFrequentActivityName.contains('有氧')) {
-          specialGuidance = "由于用户频繁进行有氧运动，请优先推送与心肺功能、耐力提升、运动恢复相关的内容。";
-          debugPrint('检测到有氧运动模式，将推送心肺功能相关内容');
-        } else if (mostFrequentActivityName.contains('力量') || mostFrequentActivityName.contains('举重')) {
-          specialGuidance = "由于用户频繁进行力量训练，请优先推送与肌肉增长、蛋白质补充、训练计划相关的内容。";
-          debugPrint('检测到力量训练模式，将推送肌肉增长相关内容');
-        } else {
-          debugPrint('未检测到特定运动模式，使用通用推荐策略');
-        }
+        if (mostFrequentActivityName.toLowerCase().contains('stretch') || mostFrequentActivityName.toLowerCase().contains('flexibility')) {
+        specialGuidance = "Since the user frequently performs stretching exercises, prioritize content related to spinal health, muscle relaxation, and posture correction.";
+        debugPrint('Detected stretching pattern, will recommend spinal health content');
+      } else if (mostFrequentActivityName.toLowerCase().contains('running') || mostFrequentActivityName.toLowerCase().contains('cardio') || mostFrequentActivityName.toLowerCase().contains('aerobic')) {
+        specialGuidance = "Since the user frequently performs aerobic exercises, prioritize content related to cardiovascular function, endurance improvement, and exercise recovery.";
+        debugPrint('Detected aerobic exercise pattern, will recommend cardiovascular content');
+      } else if (mostFrequentActivityName.toLowerCase().contains('strength') || mostFrequentActivityName.toLowerCase().contains('weight') || mostFrequentActivityName.toLowerCase().contains('resistance')) {
+        specialGuidance = "Since the user frequently performs strength training, prioritize content related to muscle growth, protein supplementation, and training plans.";
+        debugPrint('Detected strength training pattern, will recommend muscle growth content');
+      } else {
+        debugPrint('No specific exercise pattern detected, using general recommendation strategy');
+      }
         context += specialGuidance;
       } else {
-        context += "用户暂无运动记录，请提供通用的健康和运动入门建议。";
-        debugPrint('用户无运动记录，将提供通用健康建议');
+        context += "User has no activity records, please provide general health and exercise beginner advice.";
+      debugPrint('User has no activity records, will provide general health advice');
       }
       
-      context += " 请确保建议实用、具体且有激励性。每条建议以数字开头(1., 2., 3.)，每行一条。";
-      debugPrint('构建的提示词长度: ${context.length} 字符');
-      debugPrint('提示词内容: $context');
+      context += " Please ensure the advice is practical, specific, and motivational. Each suggestion should start with a number (1., 2., 3.), one per line.";
+      debugPrint('Built prompt length: ${context.length} characters');
+      debugPrint('Prompt content: $context');
 
       final apiKey = dotenv.env['OPENAI_API_KEY'];
-      debugPrint('OpenAI API Key 状态: ${apiKey != null && apiKey.isNotEmpty ? "已配置" : "未配置"}');
+      debugPrint('OpenAI API Key status: ${apiKey != null && apiKey.isNotEmpty ? "Configured" : "Not configured"}');
       
-      debugPrint('开始调用 OpenAI API...');
+      debugPrint('Starting OpenAI API call...');
       try {
         final response = await _dio.post(
           'https://api.siliconflow.cn/v1/chat/completions',
@@ -231,10 +257,10 @@ class TipsProvider with ChangeNotifier {
             'temperature': 0.7,
           },
         );
-        debugPrint('OpenAI API 调用成功，状态码: ${response.statusCode}');
+        debugPrint('OpenAI API call successful, status code: ${response.statusCode}');
 
         final content = response.data['choices'][0]['message']['content'] as String;
-        debugPrint('OpenAI 返回内容: $content');
+        debugPrint('OpenAI returned content: $content');
         
         // Parse the response to extract individual tips
         final tips = content.split('\n')
@@ -243,37 +269,37 @@ class TipsProvider with ChangeNotifier {
             .take(3)
             .toList();
         
-        debugPrint('解析出 ${tips.length} 条建议:');
+        debugPrint('Parsed ${tips.length} suggestions:');
         for (int i = 0; i < tips.length; i++) {
           debugPrint('  ${i + 1}. ${tips[i]}');
         }
 
         // Ensure we have exactly 3 tips
         if (tips.length < 3) {
-          debugPrint('OpenAI 返回的建议少于3条，回退到模拟建议');
+          debugPrint('OpenAI returned less than 3 suggestions, falling back to simulated suggestions');
           return await _generateMockTips();
         }
 
-        debugPrint('=== OpenAI 推荐生成成功 ===');
+        debugPrint('=== OpenAI recommendation generation successful ===');
         return tips;
       } catch (e) {
-        debugPrint('=== OpenAI 推荐生成失败 ===');
-        debugPrint('错误详情: $e');
+        debugPrint('=== OpenAI recommendation generation failed ===');
+        debugPrint('Error details: $e');
         if (e is DioException) {
-          debugPrint('网络错误类型: ${e.type}');
-          debugPrint('错误消息: ${e.message}');
+          debugPrint('Network error type: ${e.type}');
+          debugPrint('Error message: ${e.message}');
           if (e.response != null) {
-            debugPrint('响应状态码: ${e.response?.statusCode}');
-            debugPrint('响应数据: ${e.response?.data}');
+            debugPrint('Response status code: ${e.response?.statusCode}');
+          debugPrint('Response data: ${e.response?.data}');
           }
         }
-        debugPrint('回退到模拟建议生成');
+        debugPrint('Falling back to simulated suggestion generation');
         return await _generateMockTips();
       }
     } catch (e) {
-      debugPrint('=== OpenAI 推荐生成过程中发生未预期错误 ===');
-      debugPrint('错误详情: $e');
-      debugPrint('回退到模拟建议生成');
+      debugPrint('=== Unexpected error occurred during OpenAI recommendation generation ===');
+      debugPrint('Error details: $e');
+      debugPrint('Falling back to simulated suggestion generation');
       return await _generateMockTips();
     }
   }

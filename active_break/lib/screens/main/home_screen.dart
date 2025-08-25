@@ -27,7 +27,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    // 延迟到下一帧执行，避免在构建过程中调用setState
+    // Delay execution to next frame to avoid calling setState during build
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await loadLocalizedDescriptions();
       _loadWeeklyData();

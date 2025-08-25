@@ -100,7 +100,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     labelText: AppLocalizations.of(context).translate('password'),
                     prefixIcon: const Icon(Icons.lock),
                     suffixIcon: IconButton(
-                      icon: Icon(_obscurePassword ? Icons.visibility : Icons.visibility_off),
+                      icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility),
                       onPressed: () {
                         setState(() {
                           _obscurePassword = !_obscurePassword;

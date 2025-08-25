@@ -17,7 +17,7 @@ class _RecommendScreenState extends State<RecommendScreen> {
   @override
   void initState() {
     super.initState();
-    // 延迟到下一帧执行，避免在构建过程中调用setState
+    // Delay to next frame to avoid calling setState during build
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadTips();
     });
@@ -97,7 +97,9 @@ class _RecommendScreenState extends State<RecommendScreen> {
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            'Daily health tips will be generated at midnight',
+                            AppLocalizations.of(
+                              context,
+                            ).translate('daily_tips_generated_at_midnight'),
                             style: Theme.of(context).textTheme.bodyMedium
                                 ?.copyWith(
                                   color: Theme.of(
@@ -129,7 +131,7 @@ class _RecommendScreenState extends State<RecommendScreen> {
                           ),
                           child: _buildTipCard(
                             context,
-                            'Health Tip ${index + 1}',
+                            '${AppLocalizations.of(context).translate('health_tip')} ${index + 1}',
                             tip,
                             icons[index % icons.length],
                             colors[index % colors.length],
