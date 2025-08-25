@@ -20,7 +20,7 @@ class ActivityProvider with ChangeNotifier {
   Duration _totalDuration = Duration.zero;
   Duration _remainingTime = Duration.zero;
   bool _needsAutoComplete = false;
-  bool _isSaving = false; // 防止重复保存
+  bool _isSaving = false; // Prevent duplicate saves
 
   List<PhysicalActivity> get activities => _activities;
   List<ActivityRecord> get recentRecords => _recentRecords;
@@ -175,7 +175,7 @@ class ActivityProvider with ChangeNotifier {
     _timerStartTime = DateTime.now();
     _elapsedTime = Duration.zero;
 
-    // 获取活动的默认时长（分钟转换为秒）
+    // Get activity default duration (convert minutes to seconds)
     final activity = _activities.firstWhere(
       (a) => a.activityTypeId == activityId,
       orElse: () => throw Exception('Activity not found'),
@@ -202,11 +202,11 @@ class ActivityProvider with ChangeNotifier {
       _elapsedTime = DateTime.now().difference(_timerStartTime!);
       _remainingTime = _totalDuration - _elapsedTime;
 
-      // 如果倒计时结束，自动完成运动
+      // If countdown ends, automatically complete exercise
       if (_remainingTime.isNegative || _remainingTime == Duration.zero) {
         _remainingTime = Duration.zero;
         _elapsedTime = _totalDuration;
-        // 标记为需要自动保存
+        // Mark as needing auto-save
         _autoCompleteTimer();
       }
 
@@ -215,7 +215,7 @@ class ActivityProvider with ChangeNotifier {
   }
 
   void _autoCompleteTimer() {
-    // 标记需要自动完成，ExerciseScreen将监听这个状态
+    // Mark as needing auto-completion, ExerciseScreen will listen to this state
     _needsAutoComplete = true;
     _isTimerRunning = false;
     notifyListeners();
@@ -227,12 +227,12 @@ class ActivityProvider with ChangeNotifier {
   }
 
   Future<bool> saveActivityRecord(int userId) async {
-    // 允许在自动完成时保存记录，即使计时器已停止
+    // Allow saving record during auto-completion, even if timer is stopped
     if (_timerStartTime == null ||
         (_currentActivityId == 0 && !_needsAutoComplete))
       return false;
 
-    // 防止重复保存
+    // Prevent duplicate saves
     if (_isSaving) return false;
     _isSaving = true;
 
@@ -247,8 +247,8 @@ class ActivityProvider with ChangeNotifier {
           .round();
 
       // Debug print for calorie calculation
-      print(
-        '卡路里计算: 时长=${durationMinutes}分钟, 每分钟卡路里=${activity.caloriesPerMinute}, 总卡路里=${caloriesBurned}',
+      debugPrint(
+        'Calorie calculation: duration=${durationMinutes}min, calories per minute=${activity.caloriesPerMinute}, total calories=${caloriesBurned}',
       );
 
       final record = ActivityRecord(
@@ -263,10 +263,10 @@ class ActivityProvider with ChangeNotifier {
       await _databaseService.insertActivityRecord(record);
 
       // Debug print for recent records
-      print('保存活动记录后，最近记录数量: ${_recentRecords.length}');
+      debugPrint('Recent records count after saving activity record: ${_recentRecords.length}');
       for (var record in _recentRecords) {
-        print(
-          '  记录: 活动ID=${record.activityTypeId}, 开始时间=${record.beginTime}, 结束时间=${record.endTime}',
+        debugPrint(
+          '  Record: activityID=${record.activityTypeId}, startTime=${record.beginTime}, endTime=${record.endTime}',
         );
       }
 
@@ -276,7 +276,7 @@ class ActivityProvider with ChangeNotifier {
       // Stop timer
       stopTimer();
 
-      // 清除自动完成标志
+      // Clear auto-complete flag
       _needsAutoComplete = false;
 
       // Notify listeners with updated weekly data

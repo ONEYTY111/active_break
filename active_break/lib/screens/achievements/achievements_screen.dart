@@ -29,7 +29,7 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
         listen: false,
       );
 
-      // 设置UserProvider并根据当前语言加载数据
+      // Set UserProvider and load data based on current language
       achievementProvider.setUserProvider(userProvider);
       _loadAchievementsWithLanguage(achievementProvider, languageProvider);
     });
@@ -54,7 +54,7 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
       ),
       body: Consumer2<AchievementProvider, LanguageProvider>(
         builder: (context, achievementProvider, languageProvider, child) {
-          // 当语言变化时重新加载成就数据
+          // Reload achievement data when language changes
           WidgetsBinding.instance.addPostFrameCallback((_) {
             final currentLanguage = languageProvider.locale.languageCode;
             if (achievementProvider.userAchievements.isNotEmpty) {
@@ -98,7 +98,7 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
 
           return Column(
             children: [
-              // 成就统计卡片
+              // Achievement statistics card
               Container(
                 width: double.infinity,
                 margin: const EdgeInsets.all(16),
@@ -156,7 +156,7 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
                 ),
               ),
 
-              // 成就列表
+              // Achievement list
               Expanded(
                 child: achievementProvider.userAchievements.isEmpty
                     ? Center(
@@ -241,7 +241,7 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
         padding: const EdgeInsets.all(16),
         child: Row(
           children: [
-            // 成就图标
+            // Achievement icon
             Container(
               width: 60,
               height: 60,
@@ -265,7 +265,7 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
             ),
             const SizedBox(width: 16),
 
-            // 成就信息
+            // Achievement information
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -294,7 +294,7 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
                   ),
                   const SizedBox(height: 8),
 
-                  // 进度条
+                  // Progress bar
                   if (!isCompleted) ...[
                     Row(
                       children: [

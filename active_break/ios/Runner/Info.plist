@@ -51,5 +51,16 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	
+	<!-- Background modes for notifications and background processing -->
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>background-processing</string>
+		<string>background-fetch</string>
+	</array>
+	
+	<!-- Notification usage description -->
+	<key>NSUserNotificationUsageDescription</key>
+	<string>This app needs notification permission to remind you to take exercise breaks.</string>
 </dict>
 </plist>

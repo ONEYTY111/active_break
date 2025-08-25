@@ -23,7 +23,7 @@ class AchievementNotification {
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // 成就图标和动画效果
+            // Achievement icon and animation effect
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
@@ -37,7 +37,7 @@ class AchievementNotification {
             ),
             const SizedBox(height: 20),
             
-            // 主标题
+            // Main title
             Text(
               AppLocalizations.of(context).translate('achievement_unlocked'),
               style: Theme.of(context).textTheme.headlineSmall?.copyWith(
@@ -47,7 +47,7 @@ class AchievementNotification {
             ),
             const SizedBox(height: 8),
             
-            // 成就名称
+            // Achievement name
             Text(
               achievement.name,
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
@@ -58,7 +58,7 @@ class AchievementNotification {
             ),
             const SizedBox(height: 12),
             
-            // 成就描述
+            // Achievement description
             Text(
               achievement.description,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
@@ -68,7 +68,7 @@ class AchievementNotification {
             ),
             const SizedBox(height: 24),
             
-            // 确认按钮
+            // Confirm button
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(

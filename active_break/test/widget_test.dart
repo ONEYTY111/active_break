@@ -58,15 +58,15 @@ void main() {
       final languageProvider = LanguageProvider();
 
       // Test initial language
-      expect(languageProvider.locale.languageCode, 'zh');
-      expect(languageProvider.isChinese, true);
-      expect(languageProvider.isEnglish, false);
-
-      // Test language change
-      await languageProvider.setLanguage('en');
       expect(languageProvider.locale.languageCode, 'en');
       expect(languageProvider.isChinese, false);
       expect(languageProvider.isEnglish, true);
+
+      // Test language change
+      await languageProvider.setLanguage('zh');
+      expect(languageProvider.locale.languageCode, 'zh');
+      expect(languageProvider.isChinese, true);
+      expect(languageProvider.isEnglish, false);
     });
 
     testWidgets('Activity provider should initialize correctly', (

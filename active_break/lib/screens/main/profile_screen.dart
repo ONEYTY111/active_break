@@ -401,7 +401,7 @@ class ProfileScreen extends StatelessWidget {
       context: context,
       builder: (context) => AlertDialog(
         title: Text(AppLocalizations.of(context).translate('logout')),
-        content: Text('Are you sure you want to logout?'),
+        content: Text(AppLocalizations.of(context).translate('logout_confirm')),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),

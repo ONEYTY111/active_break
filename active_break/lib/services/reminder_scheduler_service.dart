@@ -18,7 +18,7 @@ class ReminderSchedulerService {
 
   bool _isInitialized = false;
 
-  /// 初始化后台任务调度器
+  /// Initialize background task scheduler
   Future<void> initialize() async {
     if (_isInitialized) return;
 
@@ -28,24 +28,24 @@ class ReminderSchedulerService {
     );
 
     _isInitialized = true;
-    debugPrint('提醒调度服务初始化完成');
+    debugPrint('Reminder scheduler service initialized');
   }
 
-  /// 为用户的提醒设置安排后台任务
+  /// Schedule background tasks for user's reminder settings
   Future<void> scheduleReminders(int userId) async {
     if (!_isInitialized) {
       await initialize();
     }
 
-    // 取消之前的任务
+    // Cancel previous tasks
     await cancelReminders(userId);
 
-    // 注册周期性检查任务
+    // Register periodic check task
     await Workmanager().registerPeriodicTask(
       '${_reminderTaskName}_$userId',
       _reminderTaskName,
-      frequency: const Duration(minutes: 15), // 每15分钟检查一次
-      initialDelay: const Duration(minutes: 1), // 1分钟后开始
+      frequency: const Duration(minutes: 15), // Check every 15 minutes
+      initialDelay: const Duration(minutes: 1), // Start after 1 minute
       inputData: {'userId': userId},
       tag: _reminderTaskTag,
       constraints: Constraints(
@@ -57,36 +57,36 @@ class ReminderSchedulerService {
       ),
     );
 
-    debugPrint('为用户 $userId 安排提醒任务');
+    debugPrint('Scheduled reminder task for user $userId');
   }
 
-  /// 取消用户的提醒任务
+  /// Cancel user's reminder tasks
   Future<void> cancelReminders(int userId) async {
     await Workmanager().cancelByUniqueName('${_reminderTaskName}_$userId');
-    debugPrint('取消用户 $userId 的提醒任务');
+    debugPrint('Cancelled reminder tasks for user $userId');
   }
 
-  /// 取消所有提醒任务
+  /// Cancel all reminder tasks
   Future<void> cancelAllReminders() async {
     await Workmanager().cancelByTag(_reminderTaskTag);
-    debugPrint('取消所有提醒任务');
+    debugPrint('Cancelled all reminder tasks');
   }
 
-  /// 立即检查并触发提醒（用于测试）
+  /// Immediately check and trigger reminders (for testing)
   Future<void> checkAndTriggerReminders(int userId) async {
     await _checkReminders(userId);
   }
 
-  /// 检查提醒设置并触发通知
+  /// Check reminder settings and trigger notifications
   static Future<void> _checkReminders(int userId) async {
     try {
       final databaseService = DatabaseService();
 
-      // 获取用户的所有启用的提醒设置
+      // Get all enabled reminder settings for the user
       final reminders = await _getUserActiveReminders(databaseService, userId);
 
       if (reminders.isEmpty) {
-        debugPrint('用户 $userId 没有启用的提醒设置');
+        debugPrint('User $userId has no enabled reminder settings');
         return;
       }
 
@@ -96,33 +96,41 @@ class ReminderSchedulerService {
 
       for (final reminder in reminders) {
         if (await _shouldTriggerReminder(reminder, now)) {
-          // 获取运动类型信息
+          // Get activity type information
           final activityType = await databaseService.getPhysicalActivityById(
             reminder.activityTypeId,
           );
-          final activityName = activityType?.name ?? '运动';
+          final activityName = activityType?.name ?? 'Exercise';
 
-          // 生成通知ID
+          // Generate notification ID
           final notificationId = NotificationService.generateNotificationId(
             userId,
             reminder.activityTypeId,
           );
 
-          // 显示提醒通知
+          // Show reminder notification
           await notificationService.showExerciseReminder(
             notificationId: notificationId,
             activityName: activityName,
           );
 
-          debugPrint('触发运动提醒: $activityName (用户: $userId)');
+          // Record reminder trigger history
+          final db = await databaseService.database;
+          await db.insert('reminder_logs', {
+            'user_id': userId,
+            'activity_type_id': reminder.activityTypeId,
+            'triggered_at': now.millisecondsSinceEpoch,
+          });
+
+          debugPrint('Triggered exercise reminder: $activityName (User: $userId)');
         }
       }
     } catch (e) {
-      debugPrint('检查提醒时发生错误: $e');
+      debugPrint('Error occurred while checking reminders: $e');
     }
   }
 
-  /// 获取用户的活跃提醒设置
+  /// Get user's active reminder settings
   static Future<List<ReminderSetting>> _getUserActiveReminders(
     DatabaseService databaseService,
     int userId,
@@ -139,12 +147,12 @@ class ReminderSchedulerService {
     });
   }
 
-  /// 判断是否应该触发提醒
+  /// Determine whether reminder should be triggered
   static Future<bool> _shouldTriggerReminder(
     ReminderSetting reminder,
     DateTime now,
   ) async {
-    // 检查是否在时间范围内
+    // Check if within time range
     final startTime = TimeOfDay(
       hour: reminder.startTime.hour,
       minute: reminder.startTime.minute,
@@ -159,12 +167,12 @@ class ReminderSchedulerService {
       return false;
     }
 
-    // 检查间隔周期
+    // Check interval period
     if (!_shouldTriggerByInterval(reminder, now)) {
       return false;
     }
 
-    // 检查是否已经在最近的间隔时间内触发过
+    // Check if already triggered within recent interval
     if (await _hasRecentlyTriggered(reminder, now)) {
       return false;
     }
@@ -172,7 +180,7 @@ class ReminderSchedulerService {
     return true;
   }
 
-  /// 检查当前时间是否在指定范围内
+  /// Check if current time is within specified range
   static bool _isTimeInRange(
     TimeOfDay current,
     TimeOfDay start,
@@ -183,46 +191,77 @@ class ReminderSchedulerService {
     final endMinutes = end.hour * 60 + end.minute;
 
     if (startMinutes <= endMinutes) {
-      // 同一天内的时间范围
+      // Time range within the same day
       return currentMinutes >= startMinutes && currentMinutes <= endMinutes;
     } else {
-      // 跨天的时间范围
+      // Time range across days
       return currentMinutes >= startMinutes || currentMinutes <= endMinutes;
     }
   }
 
-  /// 检查是否应该根据间隔周期触发
+  /// Check if should trigger based on interval period
+  /// @author 作者
+  /// @date 2024-12-25 当前时间
+  /// @param reminder 提醒设置
+  /// @param now 当前时间
+  /// @return bool 是否应该根据间隔触发
   static bool _shouldTriggerByInterval(ReminderSetting reminder, DateTime now) {
-    // 根据间隔周期检查
-    final daysSinceEpoch = now.difference(DateTime(1970, 1, 1)).inDays;
-    return daysSinceEpoch % reminder.intervalWeek == 0;
+    // 检查基于天数的间隔周期
+    final daysSinceCreated = now.difference(reminder.createdAt ?? now).inDays;
+    
+    // 如果设置了周间隔（天数），检查是否满足天数间隔
+    if (reminder.intervalWeek > 0) {
+      return daysSinceCreated % reminder.intervalWeek == 0;
+    }
+    
+    // 如果没有设置周间隔，默认每天都可以触发
+    return true;
   }
 
-  /// 检查是否在最近的间隔时间内已经触发过
+  /// Check if already triggered within recent interval time
   static Future<bool> _hasRecentlyTriggered(
     ReminderSetting reminder,
     DateTime now,
   ) async {
-    // 这里可以实现更复杂的逻辑，比如记录最后触发时间
-    // 暂时简单实现：检查当前时间是否是间隔的倍数
-    final minutesSinceStart = now.hour * 60 + now.minute;
-    final startMinutes =
-        reminder.startTime.hour * 60 + reminder.startTime.minute;
-    final elapsedMinutes = minutesSinceStart - startMinutes;
-
-    if (elapsedMinutes < 0) {
-      return false; // 还没到开始时间
+    try {
+      final databaseService = DatabaseService();
+      final db = await databaseService.database;
+      
+      // Query recent reminder records
+      final List<Map<String, dynamic>> results = await db.query(
+        'reminder_logs',
+        where: 'user_id = ? AND activity_type_id = ? AND triggered_at > ?',
+        whereArgs: [
+          reminder.userId,
+          reminder.activityTypeId,
+          now.subtract(Duration(minutes: reminder.intervalValue)).millisecondsSinceEpoch,
+        ],
+        orderBy: 'triggered_at DESC',
+        limit: 1,
+      );
+      
+      return results.isNotEmpty;
+    } catch (e) {
+      debugPrint('Failed to check recent trigger records: $e');
+      // If query fails, use simple time interval check
+      final minutesSinceStart = now.hour * 60 + now.minute;
+      final startMinutes = reminder.startTime.hour * 60 + reminder.startTime.minute;
+      final elapsedMinutes = minutesSinceStart - startMinutes;
+      
+      if (elapsedMinutes < 0) {
+        return false; // Not yet start time
+      }
+      
+      return elapsedMinutes % reminder.intervalValue != 0;
     }
-
-    return elapsedMinutes % reminder.intervalValue == 0;
   }
 }
 
-/// 后台任务回调函数
+/// Background task callback function
 @pragma('vm:entry-point')
 void callbackDispatcher() {
   Workmanager().executeTask((task, inputData) async {
-    debugPrint('执行后台任务: $task');
+    debugPrint('Executing background task: $task');
 
     try {
       switch (task) {
@@ -233,17 +272,17 @@ void callbackDispatcher() {
           }
           break;
         default:
-          debugPrint('未知的后台任务: $task');
+          debugPrint('Unknown background task: $task');
       }
       return Future.value(true);
     } catch (e) {
-      debugPrint('后台任务执行失败: $e');
+      debugPrint('Background task execution failed: $e');
       return Future.value(false);
     }
   });
 }
 
-/// 时间辅助类
+/// Time helper class
 class TimeOfDay {
   final int hour;
   final int minute;

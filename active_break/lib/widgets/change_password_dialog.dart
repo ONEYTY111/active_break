@@ -82,7 +82,7 @@ class _ChangePasswordDialogState extends State<ChangePasswordDialog> {
                 labelText: AppLocalizations.of(context).translate('current_password'),
                 prefixIcon: const Icon(Icons.lock),
                 suffixIcon: IconButton(
-                  icon: Icon(_obscureCurrentPassword ? Icons.visibility : Icons.visibility_off),
+                  icon: Icon(_obscureCurrentPassword ? Icons.visibility_off : Icons.visibility),
                   onPressed: () {
                     setState(() {
                       _obscureCurrentPassword = !_obscureCurrentPassword;
@@ -107,7 +107,7 @@ class _ChangePasswordDialogState extends State<ChangePasswordDialog> {
                 labelText: AppLocalizations.of(context).translate('new_password'),
                 prefixIcon: const Icon(Icons.lock_outline),
                 suffixIcon: IconButton(
-                  icon: Icon(_obscureNewPassword ? Icons.visibility : Icons.visibility_off),
+                  icon: Icon(_obscureNewPassword ? Icons.visibility_off : Icons.visibility),
                   onPressed: () {
                     setState(() {
                       _obscureNewPassword = !_obscureNewPassword;
@@ -135,7 +135,7 @@ class _ChangePasswordDialogState extends State<ChangePasswordDialog> {
                 labelText: AppLocalizations.of(context).translate('confirm_password'),
                 prefixIcon: const Icon(Icons.lock_outline),
                 suffixIcon: IconButton(
-                  icon: Icon(_obscureConfirmPassword ? Icons.visibility : Icons.visibility_off),
+                  icon: Icon(_obscureConfirmPassword ? Icons.visibility_off : Icons.visibility),
                   onPressed: () {
                     setState(() {
                       _obscureConfirmPassword = !_obscureConfirmPassword;

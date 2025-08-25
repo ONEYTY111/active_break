@@ -18,7 +18,7 @@ class ExerciseScreen extends StatefulWidget {
 }
 
 class _ExerciseScreenState extends State<ExerciseScreen> {
-  bool _isAutoCompleting = false; // 防止重复自动完成
+  bool _isAutoCompleting = false; // Prevent duplicate auto-completion
 
   @override
   void initState() {
@@ -110,7 +110,7 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
       ),
       body: Consumer<ActivityProvider>(
         builder: (context, activityProvider, child) {
-          // 检查是否需要自动完成
+          // Check if auto-completion is needed
           if (activityProvider.needsAutoComplete) {
             WidgetsBinding.instance.addPostFrameCallback((_) {
               _autoCompleteActivity(context);
@@ -137,7 +137,7 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // 头部：图标和标题
+                      // Header: icon and title
                       Row(
                         children: [
                           CircleAvatar(
@@ -201,13 +201,13 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
                               ),
                               child: Consumer<ActivityProvider>(
                                 builder: (context, provider, _) {
-                                  // 显示倒计时剩余时间
+                                  // Display countdown remaining time
                                   final duration = provider.remainingTime;
                                   final hours = duration.inHours;
                                   final minutes = duration.inMinutes % 60;
                                   final seconds = duration.inSeconds % 60;
 
-                                  // 检查是否需要自动完成
+                                  // Check if auto-completion is needed
                                   if (provider.needsAutoComplete &&
                                       !_isAutoCompleting) {
                                     _isAutoCompleting = true;
@@ -307,7 +307,7 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
 
                       const SizedBox(height: 12),
 
-                      // 活动信息行
+                      // Activity information row
                       Row(
                         children: [
                           Icon(
@@ -338,7 +338,7 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
                         ],
                       ),
 
-                      // 保持底部紧凑，无额外按钮行
+                      // Keep bottom compact, no extra button row
                       const SizedBox(height: 4),
                     ],
                   ),
@@ -357,15 +357,15 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
       listen: false,
     );
 
-    // 检查是否已有运动在进行中
+    // Check if there's already an exercise in progress
     if (activityProvider.isTimerRunning) {
-      // 获取当前正在进行的运动名称
+      // Get the name of the currently ongoing exercise
       final currentActivity = activityProvider.activities.firstWhere(
         (activity) =>
             activity.activityTypeId == activityProvider.currentActivityId,
         orElse: () => PhysicalActivity(
           activityTypeId: 0,
-          name: '未知运动',
+          name: AppLocalizations.of(context).translate('unknown_activity'),
           description: '',
           caloriesPerMinute: 0,
           defaultDuration: 0,
@@ -373,10 +373,14 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
         ),
       );
 
-      // 显示提示信息
+      // Show prompt information
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('已经在进行${currentActivity.name}了，请先完成当前运动'),
+          content: Text(
+            AppLocalizations.of(context)
+                .translate('already_exercising')
+                .replaceAll('{activity}', currentActivity.name),
+          ),
           backgroundColor: Colors.orange,
           behavior: SnackBarBehavior.floating,
           margin: const EdgeInsets.all(16),
@@ -430,7 +434,7 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
       userProvider.currentUser!.userId!,
     );
 
-    // 如果运动记录保存成功，检查成就
+    // If exercise record is saved successfully, check achievements
     if (success) {
       await achievementProvider.checkAchievementsAfterExercise(context);
     }
@@ -453,7 +457,9 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to save record'),
+            content: Text(
+              AppLocalizations.of(context).translate('save_record_failed'),
+            ),
             backgroundColor: Colors.red,
             behavior: SnackBarBehavior.floating,
             margin: const EdgeInsets.all(16),
@@ -477,16 +483,16 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
       listen: false,
     );
 
-    // 清除自动完成标志，避免重复触发
+    // Clear auto-completion flag to avoid repeated triggers
     activityProvider.clearAutoCompleteFlag();
 
-    // 自动完成运动并保存记录
+    // Auto-complete exercise and save record
     await _saveRecord(context);
 
-    // 重置防重复标志
+    // Reset duplicate prevention flag
     _isAutoCompleting = false;
 
-    // 显示自动完成提示
+    // Show auto-completion prompt
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(

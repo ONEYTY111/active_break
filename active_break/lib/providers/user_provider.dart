@@ -24,31 +24,31 @@ class UserProvider with ChangeNotifier {
   }
 
   Future<void> _loadUserSession() async {
-    print('=== UserProvider: 开始加载用户会话 ===');
+    print('=== UserProvider: Starting to load user session ===');
     final prefs = await SharedPreferences.getInstance();
     _isLoggedIn = prefs.getBool(_isLoggedInKey) ?? false;
-    print('UserProvider: SharedPreferences中的登录状态: $_isLoggedIn');
+    print('UserProvider: Login status in SharedPreferences: $_isLoggedIn');
 
     if (_isLoggedIn) {
       final userId = prefs.getInt(_userIdKey);
-      print('UserProvider: SharedPreferences中的用户ID: $userId');
+      print('UserProvider: User ID in SharedPreferences: $userId');
       if (userId != null) {
         _currentUser = await _databaseService.getUserById(userId);
-        print('UserProvider: 从数据库获取的用户: $_currentUser');
+        print('UserProvider: User retrieved from database: $_currentUser');
         if (_currentUser == null) {
           // User not found, clear session
-          print('UserProvider: 用户未找到，清除会话');
+          print('UserProvider: User not found, clearing session');
           await logout();
         } else {
-          print('UserProvider: 用户登录成功，用户名: ${_currentUser!.username}');
+          print('UserProvider: User login successful, username: ${_currentUser!.username}');
         }
       }
     } else {
-      print('UserProvider: 用户未登录');
+      print('UserProvider: User not logged in');
     }
-    print('UserProvider: 最终登录状态: $_isLoggedIn, 当前用户: $_currentUser');
+    print('UserProvider: Final login status: $_isLoggedIn, current user: $_currentUser');
     notifyListeners();
-    print('UserProvider: notifyListeners() 已调用，UI应该重新构建');
+    print('UserProvider: notifyListeners() called, UI should rebuild');
   }
 
   String _hashPassword(String password) {

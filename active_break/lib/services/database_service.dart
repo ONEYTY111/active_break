@@ -133,10 +133,10 @@ class DatabaseService {
         )
       ''');
 
-      // 3) 清理重复的活动数据
+      // 3) Clean up duplicate activity data
       await _cleanupDuplicateActivities(db);
       
-      // 4) 确保收藏表存在
+      // 4) Ensure favorites table exists
       await db.execute('''
         CREATE TABLE IF NOT EXISTS user_favorites (
           favorite_id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
@@ -150,7 +150,7 @@ class DatabaseService {
         )
       ''');
       
-      // 5) 确保成就表存在
+      // 5) Ensure achievements table exists
       await db.execute('''
         CREATE TABLE IF NOT EXISTS achievements (
           achievement_id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
@@ -164,7 +164,7 @@ class DatabaseService {
         )
       ''');
 
-      // 6) 确保成就国际化表存在
+      // 6) Ensure achievements i18n table exists
       await db.execute('''
         CREATE TABLE IF NOT EXISTS achievements_i18n (
           id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
@@ -177,7 +177,7 @@ class DatabaseService {
         )
       ''');
 
-      // 7) 确保用户成就表存在
+      // 7) Ensure user achievements table exists
       await db.execute('''
         CREATE TABLE IF NOT EXISTS user_achievements (
           user_achievement_id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
@@ -195,15 +195,28 @@ class DatabaseService {
         )
       ''');
 
-      // 7) 插入预定义成就
-      debugPrint('=== 开始插入预定义成就 ===');
-      await _insertPredefinedAchievements(db);
-      debugPrint('=== 预定义成就插入完成 ===');
+      // 8) Ensure reminder logs table exists
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS reminder_logs (
+          log_id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+          user_id INTEGER NOT NULL,
+          activity_type_id INTEGER NOT NULL,
+          triggered_at INTEGER NOT NULL,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (user_id) REFERENCES users(user_id),
+          FOREIGN KEY (activity_type_id) REFERENCES t_physical_activities(activity_type_id)
+        )
+      ''');
       
-      // 8) 更新运动数据和国际化表（仅在没有数据时插入）
+      // 9) Insert predefined achievements
+      debugPrint('=== Starting to insert predefined achievements ===');
+      await _insertPredefinedAchievements(db);
+      debugPrint('=== Predefined achievements insertion completed ===');
+      
+      // 10) Update activity data and i18n table (insert only when no data exists)
       await _updateActivitiesAndI18nData(db);
       
-      debugPrint('数据库迁移完成，运动数据已更新');
+      debugPrint('Database migration completed, activity data updated');
     } catch (e) {
       debugPrint('Migration error: $e');
     }
@@ -386,7 +399,7 @@ class DatabaseService {
   }
 
   Future<void> _insertDefaultActivities(Database db) async {
-    debugPrint('开始插入默认运动数据...');
+    debugPrint('Starting to insert default activity data...');
     final activities = [
       {
         'name': '肩颈拉伸',
@@ -477,15 +490,15 @@ class DatabaseService {
           activity,
           conflictAlgorithm: ConflictAlgorithm.replace,
         );
-        debugPrint('插入运动数据: ${activity['name']}, ID: $result');
+        debugPrint('Inserted activity data: ${activity['name']}, ID: $result');
       } catch (e) {
-        debugPrint('插入运动数据失败: ${activity['name']}, 错误: $e');
+        debugPrint('Failed to insert activity data: ${activity['name']}, error: $e');
       }
     }
     
-    // 验证插入结果
+    // Verify insertion result
     final count = await db.rawQuery('SELECT COUNT(*) as count FROM t_physical_activities');
-    debugPrint('运动数据插入完成，总数: ${count.first['count']}');
+    debugPrint('Activity data insertion completed, total count: ${count.first['count']}');
   }
 
   // User operations
@@ -759,45 +772,45 @@ class DatabaseService {
     });
   }
 
-  // 更新运动数据和国际化表（内部方法）
+  // Update activity data and i18n table (internal method)
   Future<void> _updateActivitiesAndI18nData(Database db) async {
     try {
-      // 检查是否已有活动数据
+      // Check if activity data already exists
       final existingActivities = await db.rawQuery(
         'SELECT COUNT(*) as count FROM t_physical_activities WHERE deleted = 0'
       );
       final activityCount = existingActivities.first['count'] as int;
       
       if (activityCount == 0) {
-        // 只有在没有活动数据时才插入
-        debugPrint('数据库中没有活动数据，开始插入默认数据...');
+        // Insert only when no activity data exists
+        debugPrint('No activity data in database, starting to insert default data...');
         await _insertDefaultActivities(db);
         await _insertI18nData(db);
-        debugPrint('默认运动数据和国际化表已插入');
+        debugPrint('Default activity data and i18n table inserted');
       } else {
-        debugPrint('数据库中已有 $activityCount 条活动数据，跳过插入');
+        debugPrint('Database already has $activityCount activity records, skipping insertion');
       }
     } catch (e) {
-      debugPrint('检查或插入运动数据时出错: $e');
+      debugPrint('Error checking or inserting activity data: $e');
     }
   }
   
-  // 公开的更新方法
+  // Public update method
   Future<void> updateActivitiesData() async {
     final db = await database;
     await _updateActivitiesAndI18nData(db);
   }
   
-  // 清理重复的活动数据，只保留最新的10条（内部方法）
+  // Clean up duplicate activity data, keep only the latest 10 (internal method)
   Future<void> _cleanupDuplicateActivities(Database db) async {
     try {
-      // 获取所有活动数据，按ID降序排列
+      // Get all activity data, sorted by ID in descending order
       final activities = await db.rawQuery(
         'SELECT * FROM t_physical_activities WHERE deleted = 0 ORDER BY activity_type_id DESC'
       );
       
       if (activities.length > 10) {
-        // 保留最新的10条，删除其他的
+        // Keep the latest 10, delete others
         final keepIds = activities.take(10).map((a) => a['activity_type_id']).toList();
         final keepIdsStr = keepIds.join(',');
         
@@ -805,21 +818,21 @@ class DatabaseService {
           'UPDATE t_physical_activities SET deleted = 1 WHERE activity_type_id NOT IN ($keepIdsStr)'
         );
         
-        // 同时清理对应的国际化数据
+        // Also clean up corresponding i18n data
         await db.execute(
           'DELETE FROM t_physical_activities_i18n WHERE activity_type_id NOT IN ($keepIdsStr)'
         );
         
-        debugPrint('已清理重复活动数据，保留最新的10条');
+        debugPrint('Cleaned up duplicate activity data, kept the latest 10');
       } else {
-        debugPrint('活动数据数量正常，无需清理');
+        debugPrint('Activity data count is normal, no cleanup needed');
       }
     } catch (e) {
-      debugPrint('清理重复活动数据时出错: $e');
+      debugPrint('Error occurred while cleaning up duplicate activity data: $e');
     }
   }
   
-  // 清理重复的活动数据，只保留最新的10条（公开方法）
+  // Clean up duplicate activity data, keep only the latest 10 (public method)
   Future<void> cleanupDuplicateActivities() async {
     final db = await database;
     await _cleanupDuplicateActivities(db);
@@ -893,15 +906,15 @@ class DatabaseService {
     );
   }
 
-  // 插入预定义成就
+  // Insert predefined achievements
   Future<void> _insertPredefinedAchievements(Database db) async {
     try {
-      // 检查是否已经有成就数据
+      // Check if achievement data already exists
       final count = await db.rawQuery('SELECT COUNT(*) as count FROM achievements');
       final achievementCount = count.first['count'] as int;
       
       if (achievementCount == 0) {
-        // 插入预定义成就
+        // Insert predefined achievements
         final achievements = [
           {
             'name': '初来乍到',
@@ -950,7 +963,7 @@ class DatabaseService {
             'description': '累计运动时间达到10小时',
             'icon': '⏰',
             'type': 'exercise_duration',
-            'target_value': 600, // 10小时 = 600分钟
+            'target_value': 600, // 10 hours = 600 minutes
           },
         ];
         
@@ -958,57 +971,57 @@ class DatabaseService {
           await db.insert('achievements', achievement);
         }
         
-        // 插入成就国际化数据
+        // Insert achievement i18n data
         await _insertAchievementI18nData(db);
         
-        debugPrint('预定义成就插入完成，共插入 ${achievements.length} 个成就');
+        debugPrint('Predefined achievements insertion completed, inserted ${achievements.length} achievements');
       } else {
-        debugPrint('成就数据已存在，跳过插入');
+        debugPrint('Achievement data already exists, skipping insertion');
       }
       
-      // 无论成就数据是否存在，都检查并插入国际化数据
+      // Check and insert i18n data regardless of whether achievement data exists
       await _insertAchievementI18nData(db);
     } catch (e) {
-      debugPrint('插入预定义成就时出错: $e');
+      debugPrint('Error occurred while inserting predefined achievements: $e');
     }
   }
 
   Future<void> _insertAchievementI18nData(Database db) async {
     try {
-      debugPrint('=== 开始检查成就国际化数据 ===');
-      // 检查是否已经有成就国际化数据
+      debugPrint('=== Starting to check achievement i18n data ===');
+      // Check if achievement i18n data already exists
       final count = await db.rawQuery('SELECT COUNT(*) as count FROM achievements_i18n');
       final i18nCount = count.first['count'] as int;
-      debugPrint('当前成就国际化数据条数: $i18nCount');
+      debugPrint('Current achievement i18n data count: $i18nCount');
       
       if (i18nCount == 0) {
-        // 成就国际化数据
+        // Achievement i18n data
         final achievementI18nData = [
-          // 初来乍到
+          // First Timer
           {'achievement_id': 1, 'language_code': 'zh', 'name': '初来乍到', 'description': '完成第一次打卡'},
           {'achievement_id': 1, 'language_code': 'en', 'name': 'First Timer', 'description': 'Complete your first check-in'},
           
-          // 坚持一周
+          // Week Warrior
           {'achievement_id': 2, 'language_code': 'zh', 'name': '坚持一周', 'description': '连续打卡7天'},
           {'achievement_id': 2, 'language_code': 'en', 'name': 'Week Warrior', 'description': 'Check in for 7 consecutive days'},
           
-          // 月度达人
+          // Monthly Master
           {'achievement_id': 3, 'language_code': 'zh', 'name': '月度达人', 'description': '连续打卡30天'},
           {'achievement_id': 3, 'language_code': 'en', 'name': 'Monthly Master', 'description': 'Check in for 30 consecutive days'},
           
-          // 运动新手
+          // Exercise Beginner
           {'achievement_id': 4, 'language_code': 'zh', 'name': '运动新手', 'description': '完成第一次运动'},
           {'achievement_id': 4, 'language_code': 'en', 'name': 'Exercise Beginner', 'description': 'Complete your first exercise'},
           
-          // 运动达人
+          // Exercise Expert
           {'achievement_id': 5, 'language_code': 'zh', 'name': '运动达人', 'description': '连续运动7天'},
           {'achievement_id': 5, 'language_code': 'en', 'name': 'Exercise Expert', 'description': 'Exercise for 7 consecutive days'},
           
-          // 卡路里杀手
+          // Calorie Crusher
           {'achievement_id': 6, 'language_code': 'zh', 'name': '卡路里杀手', 'description': '累计消耗1000卡路里'},
           {'achievement_id': 6, 'language_code': 'en', 'name': 'Calorie Crusher', 'description': 'Burn a total of 1000 calories'},
           
-          // 时间管理大师
+          // Time Master
           {'achievement_id': 7, 'language_code': 'zh', 'name': '时间管理大师', 'description': '累计运动时间达到10小时'},
           {'achievement_id': 7, 'language_code': 'en', 'name': 'Time Master', 'description': 'Accumulate 10 hours of exercise time'},
         ];
@@ -1017,16 +1030,16 @@ class DatabaseService {
           await db.insert('achievements_i18n', data);
         }
         
-        debugPrint('成就国际化数据插入完成，共插入 ${achievementI18nData.length} 条记录');
+        debugPrint('Achievement i18n data insertion completed, inserted ${achievementI18nData.length} records');
       } else {
-        debugPrint('成就国际化数据已存在，跳过插入');
+        debugPrint('Achievement i18n data already exists, skipping insertion');
       }
     } catch (e) {
-      debugPrint('插入成就国际化数据时出错: $e');
+      debugPrint('Error occurred while inserting achievement i18n data: $e');
     }
   }
 
-  // 成就相关方法
+  // Achievement related methods
   Future<List<Map<String, dynamic>>> getAllAchievements() async {
     final db = await database;
     return await db.query(
@@ -1077,17 +1090,17 @@ class DatabaseService {
     if (isAchieved) {
       data['achieved_at'] = DateTime.now().toIso8601String();
     } else {
-      data['achieved_at'] = null; // 明确设置为null
+      data['achieved_at'] = null; // Explicitly set to null
     }
     
     if (existing.isEmpty) {
-      // 创建新记录
+      // Create new record
       data['user_id'] = userId;
       data['achievement_id'] = achievementId;
       data['created_at'] = DateTime.now().toIso8601String();
       await db.insert('user_achievements', data);
     } else {
-      // 更新现有记录
+      // Update existing record
       await db.update(
         'user_achievements',
         data,
