@@ -13,28 +13,25 @@ import 'screens/auth/login_screen.dart';
 import 'screens/main/main_screen.dart';
 import 'screens/favorites_screen.dart';
 import 'utils/app_localizations.dart';
-import 'services/notification_service.dart';
-import 'services/reminder_scheduler_service.dart';
+import 'services/simple_reminder_service.dart';
+
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await dotenv.load(fileName: ".env");
 
-  // Initialize notification service
+
+
+
+
+  // Initialize simple reminder service
   try {
-    final notificationService = NotificationService();
-    await notificationService.initialize();
-
-    // Request notification permissions
-    await notificationService.requestPermissions();
-
-    // Initialize reminder scheduler service
-    final schedulerService = ReminderSchedulerService();
-    await schedulerService.initialize();
-
-    debugPrint('Notification service and reminder scheduler service initialization completed');
+    final simpleReminderService = SimpleReminderService.instance;
+    await simpleReminderService.startReminder();
+    
+    debugPrint('Simple reminder service initialization completed');
   } catch (e) {
-    debugPrint('Failed to initialize notification service: $e');
+    debugPrint('Failed to initialize simple reminder service: $e');
   }
 
   runApp(const MyApp());

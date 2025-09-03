@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
 import '../../providers/user_provider.dart';
 import '../../providers/activity_provider.dart';
@@ -6,6 +7,10 @@ import '../../providers/achievement_provider.dart';
 import '../../models/achievement.dart';
 import '../../widgets/achievement_notification.dart';
 import '../../utils/app_localizations.dart';
+import '../../services/reminder_scheduler_service.dart';
+import '../../services/intelligent_reminder_service.dart';
+import '../../services/notification_service.dart';
+
 import 'home_screen.dart';
 import 'exercise_screen.dart';
 import 'recommend_screen.dart';
@@ -78,11 +83,21 @@ class _MainScreenState extends State<MainScreen> {
       await activityProvider.loadActivities();
       await activityProvider.loadRecentRecords(userId);
       await activityProvider.loadCheckinStreak(userId);
-      
+
       // Initialize achievement data
       achievementProvider.setUserProvider(userProvider);
       await achievementProvider.initialize();
-      
+
+      // Initialize and schedule reminder tasks for the user
+      try {
+        final reminderScheduler = ReminderSchedulerService();
+        await reminderScheduler.initialize();
+        await reminderScheduler.scheduleReminders(userId);
+        print('MainScreen: Reminder scheduler initialized for user $userId');
+      } catch (e) {
+        print('MainScreen: Failed to initialize reminder scheduler: $e');
+      }
+
       print('MainScreen: Data loading completed');
     } else {
       print('MainScreen: No current user, skipping data loading');
@@ -116,7 +131,9 @@ class _MainScreenState extends State<MainScreen> {
       return;
     }
 
-    debugPrint('=== Starting check-in operation, user ID: ${userProvider.currentUser!.userId} ===');
+    debugPrint(
+      '=== Starting check-in operation, user ID: ${userProvider.currentUser!.userId} ===',
+    );
     final success = await activityProvider.checkInToday(
       userProvider.currentUser!.userId!,
     );
@@ -266,7 +283,9 @@ class _MainScreenState extends State<MainScreen> {
           ),
         );
       } else {
-        debugPrint('=== Check-in failed or already checked in, showing alert dialog ===');
+        debugPrint(
+          '=== Check-in failed or already checked in, showing alert dialog ===',
+        );
         showDialog(
           context: context,
           barrierDismissible: true,
@@ -347,10 +366,23 @@ class _MainScreenState extends State<MainScreen> {
     }
   }
 
+  /**
+   * iOS通知诊断功能（仅调试模式）
+   * @author 助手
+   * @date 2025-01-02
+   * @return Future<void>
+   */
+
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: IndexedStack(index: _currentIndex, children: _screens),
+      body: Stack(
+        children: [
+          IndexedStack(index: _currentIndex, children: _screens),
+
+        ],
+      ),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           boxShadow: [

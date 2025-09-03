@@ -1,9 +1,9 @@
 /**
- * @Description: 通知功能测试工具类
+ * @Description: Notification test utility class
  * @className: NotificationTest
- * @author 作者
- * @date 2024-12-25 当前时间
- * @company: 西安博达软件股份有限公司
+ * @author Author
+ * @date Current date and time
+ * @company: Xi'an Boda Software Co., Ltd.
  * @copyright: Copyright (c) 2024
  * @version V1.0
  */
@@ -15,8 +15,8 @@ import '../services/database_service.dart';
 import '../models/reminder_and_tips.dart';
 
 /**
- * 通知功能测试工具类
- * 用于诊断和测试通知相关功能
+ * Notification test utility class
+ * Used for diagnosing and testing notification-related functions
  */
 class NotificationTest {
   static final NotificationTest _instance = NotificationTest._internal();
@@ -24,10 +24,10 @@ class NotificationTest {
   NotificationTest._internal();
 
   /**
-   * 测试通知权限状态
-   * @author 作者
-   * @date 2024-12-25 当前时间
-   * @return Future<bool> 是否有通知权限
+   * Test notification permission status
+   * @author Author
+   * @date Current date and time
+   * @return Future<bool> Whether has notification permission
    */
   Future<bool> testNotificationPermissions() async {
     try {
@@ -53,9 +53,9 @@ class NotificationTest {
   }
 
   /**
-   * 测试基本通知功能
-   * @author 作者
-   * @date 2024-12-25 当前时间
+   * Test basic notification functionality
+   * @author Author
+   * @date Current date and time
    * @return Future<void>
    */
   Future<void> testBasicNotification() async {
@@ -72,31 +72,62 @@ class NotificationTest {
   }
 
   /**
-   * 测试提醒调度服务
-   * @author 作者
-   * @date 2024-12-25 当前时间
-   * @param userId 用户ID
+   * Test reminder scheduler service
+   * @author Author
+   * @date Current date and time
+   * @param userId User ID
+   * @param activityTypeId Activity type ID
    * @return Future<void>
    */
-  Future<void> testReminderScheduler(int userId) async {
+  Future<void> testReminderScheduler(int userId, int activityTypeId) async {
     try {
-      debugPrint('=== Reminder Scheduler Test ===');
+      debugPrint('=== Testing Reminder Scheduler ===');
+      
+      // 1. Initialize reminder scheduler service
       final schedulerService = ReminderSchedulerService();
       await schedulerService.initialize();
+      debugPrint('Reminder scheduler service initialized');
       
-      // 立即检查并触发提醒
+      // 2. Check current reminder settings
+      final databaseService = DatabaseService();
+      final db = await databaseService.database;
+      final reminders = await db.query(
+        'reminder_settings',
+        where: 'user_id = ? AND enabled = ? AND deleted = ?',
+        whereArgs: [userId, 1, 0],
+      );
+      
+      debugPrint('Found ${reminders.length} enabled reminder settings:');
+      for (final reminder in reminders) {
+        debugPrint('  - Activity Type ID: ${reminder['activity_type_id']}');
+        debugPrint('  - Interval Value: ${reminder['interval_value']} minutes');
+        debugPrint('  - Start Time: ${reminder['start_time']}');
+        debugPrint('  - End Time: ${reminder['end_time']}');
+        debugPrint('  - Created At: ${reminder['created_at']}');
+      }
+      
+      // 3. Schedule reminder tasks
+      await schedulerService.scheduleReminders(userId);
+      debugPrint('Reminder tasks scheduled for user $userId');
+      
+      // 4. Immediately check and trigger reminders (for testing)
       await schedulerService.checkAndTriggerReminders(userId);
-      debugPrint('Immediate reminder check completed for user $userId');
+      debugPrint('Immediate reminder check completed');
+      
+      // 5. Check if any reminder logs were created
+      await Future.delayed(const Duration(seconds: 2));
+      await checkReminderLogs(userId);
+      
     } catch (e) {
       debugPrint('Error testing reminder scheduler: $e');
     }
   }
 
   /**
-   * 检查用户的提醒设置
-   * @author 作者
-   * @date 2024-12-25 当前时间
-   * @param userId 用户ID
+   * Check user reminder settings
+   * @author Author
+   * @date Current date and time
+   * @param userId User ID
    * @return Future<void>
    */
   Future<void> checkUserReminderSettings(int userId) async {
@@ -129,10 +160,10 @@ class NotificationTest {
   }
 
   /**
-   * 检查提醒日志
-   * @author 作者
-   * @date 2024-12-25 当前时间
-   * @param userId 用户ID
+   * Check reminder logs
+   * @author Author
+   * @date Current date and time
+   * @param userId User ID
    * @return Future<void>
    */
   Future<void> checkReminderLogs(int userId) async {
@@ -162,29 +193,29 @@ class NotificationTest {
   }
 
   /**
-   * 运行完整的诊断测试
-   * @author 作者
-   * @date 2024-12-25 当前时间
-   * @param userId 用户ID
+   * Run comprehensive diagnostic test
+   * @author Author
+   * @date Current date and time
+   * @param userId User ID
    * @return Future<void>
    */
   Future<void> runFullDiagnostic(int userId) async {
     debugPrint('\n=== STARTING FULL NOTIFICATION DIAGNOSTIC ===\n');
     
-    // 1. 测试通知权限
-    await testNotificationPermissions();
-    
-    // 2. 检查用户提醒设置
-    await checkUserReminderSettings(userId);
-    
-    // 3. 检查提醒日志
-    await checkReminderLogs(userId);
-    
-    // 4. 测试基本通知
-    await testBasicNotification();
-    
-    // 5. 测试提醒调度
-    await testReminderScheduler(userId);
+    // 1. Test notification permissions
+      await testNotificationPermissions();
+      
+      // 2. Check user reminder settings
+      await checkUserReminderSettings(userId);
+      
+      // 3. Check reminder logs
+      await checkReminderLogs(userId);
+      
+      // 4. Test basic notification
+      await testBasicNotification();
+      
+      // 5. Test reminder scheduler
+      await testReminderScheduler(userId, 1); // Use activity type ID 1 for testing
     
     debugPrint('\n=== DIAGNOSTIC COMPLETED ===\n');
   }

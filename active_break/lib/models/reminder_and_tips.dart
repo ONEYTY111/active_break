@@ -45,7 +45,13 @@ class ReminderSetting {
     );
   }
 
-  Map<String, dynamic> toMap() {
+  /**
+   * 转换为数据库映射（用于插入操作）
+   * @author Author
+   * @date Current date and time
+   * @return Map<String, dynamic> 包含所有字段的数据库映射
+   */
+  Map<String, dynamic> toMapForInsert() {
     return {
       'reminder_id': reminderId,
       'user_id': userId,
@@ -59,6 +65,38 @@ class ReminderSetting {
       'updated_at': updatedAt?.toIso8601String(),
       'deleted': deleted ? 1 : 0,
     };
+  }
+
+  /**
+   * 转换为数据库映射（用于更新操作）
+   * @author Author
+   * @date Current date and time
+   * @return Map<String, dynamic> 不包含主键的数据库映射
+   */
+  Map<String, dynamic> toMapForUpdate() {
+    return {
+      'user_id': userId,
+      'activity_type_id': activityTypeId,
+      'enabled': enabled ? 1 : 0,
+      'interval_value': intervalValue,
+      'interval_week': intervalWeek,
+      'start_time': startTime.toIso8601String(),
+      'end_time': endTime.toIso8601String(),
+      'created_at': createdAt?.toIso8601String(),
+      'updated_at': updatedAt?.toIso8601String(),
+      'deleted': deleted ? 1 : 0,
+    };
+  }
+
+  /**
+   * 转换为数据库映射（兼容旧版本）
+   * @author Author
+   * @date Current date and time
+   * @return Map<String, dynamic> 数据库映射
+   * @deprecated 请使用 toMapForInsert() 或 toMapForUpdate()
+   */
+  Map<String, dynamic> toMap() {
+    return toMapForInsert();
   }
 }
 

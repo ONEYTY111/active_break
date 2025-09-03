@@ -1,9 +1,13 @@
+import 'dart:convert';
+import 'dart:typed_data';
+
+import 'package:crypto/crypto.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:crypto/crypto.dart';
-import 'dart:convert';
 import '../models/user.dart';
 import '../services/database_service.dart';
+import '../services/intelligent_reminder_service.dart';
 
 class UserProvider with ChangeNotifier {
   static const String _userIdKey = 'user_id';
@@ -154,6 +158,10 @@ class UserProvider with ChangeNotifier {
 
         _isLoading = false;
         notifyListeners();
+        
+        // 启动智能运动提醒系统
+        await _startIntelligentReminderSystem(user.userId!);
+        
         return true;
       } else {
         _isLoading = false;
@@ -174,6 +182,9 @@ class UserProvider with ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_userIdKey);
     await prefs.setBool(_isLoggedInKey, false);
+
+    // 停止智能运动提醒系统
+    await IntelligentReminderService.instance.stopReminderSystem();
 
     notifyListeners();
   }
@@ -244,6 +255,22 @@ class UserProvider with ChangeNotifier {
       _isLoading = false;
       notifyListeners();
       return false;
+    }
+  }
+
+  /**
+   * 启动智能运动提醒系统
+   * @author Author
+   * @date Current date and time
+   * @param userId 用户ID
+   * @return Future<void>
+   * @throws Exception 当提醒系统启动失败时抛出异常
+   */
+  Future<void> _startIntelligentReminderSystem(int userId) async {
+    try {
+      await IntelligentReminderService.instance.startReminderSystem(userId);
+    } catch (e) {
+      debugPrint('启动智能运动提醒系统失败: $e');
     }
   }
 }

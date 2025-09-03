@@ -695,10 +695,23 @@ class DatabaseService {
     DateTime endDate,
   ) async {
     final db = await database;
+    
+    // Convert dates to milliseconds since epoch for proper comparison
+    final startMillis = startDate.millisecondsSinceEpoch;
+    final endMillis = endDate.millisecondsSinceEpoch;
+    
+    debugPrint('=== getActivityRecordsByDateRange Debug ===');
+    debugPrint('User ID: $userId');
+    debugPrint('Start Date: $startDate (${startDate.toIso8601String()})');
+    debugPrint('End Date: $endDate (${endDate.toIso8601String()})');
+    debugPrint('Start Millis: $startMillis');
+    debugPrint('End Millis: $endMillis');
+    
+    // Use datetime() function for proper date comparison in SQLite
     final List<Map<String, dynamic>> maps = await db.query(
       't_activi_record',
       where:
-          'user_id = ? AND begin_time >= ? AND begin_time <= ? AND deleted = ?',
+          'user_id = ? AND datetime(begin_time) >= datetime(?) AND datetime(begin_time) <= datetime(?) AND deleted = ?',
       whereArgs: [
         userId,
         startDate.toIso8601String(),
@@ -707,13 +720,29 @@ class DatabaseService {
       ],
       orderBy: 'begin_time DESC',
     );
+    
+    debugPrint('Query result count: ${maps.length}');
+    if (maps.isNotEmpty) {
+      debugPrint('Sample results:');
+      for (int i = 0; i < maps.length && i < 3; i++) {
+        debugPrint('  Record ${i + 1}: ${maps[i]['begin_time']} - ${maps[i]['duration_minutes']} min');
+      }
+    }
+    debugPrint('=== getActivityRecordsByDateRange Debug End ===');
 
     return List.generate(maps.length, (i) {
       return ActivityRecord.fromMap(maps[i]);
     });
   }
 
-  // Reminder settings operations
+  /**
+   * 插入或更新提醒设置
+   * @author Author
+   * @date Current date and time
+   * @param setting 提醒设置对象
+   * @return Future<int> 受影响的行数
+   * @throws Exception 当数据库操作失败时抛出异常
+   */
   Future<int> insertOrUpdateReminderSetting(ReminderSetting setting) async {
     final db = await database;
     final existing = await getReminderSetting(
@@ -722,14 +751,16 @@ class DatabaseService {
     );
 
     if (existing != null) {
+      // 更新操作：不包含 reminder_id 字段
       return await db.update(
         'reminder_settings',
-        setting.toMap(),
+        setting.toMapForUpdate(),
         where: 'user_id = ? AND activity_type_id = ?',
         whereArgs: [setting.userId, setting.activityTypeId],
       );
     } else {
-      return await db.insert('reminder_settings', setting.toMap());
+      // 插入操作：包含所有字段（reminder_id 为 null，由数据库自动生成）
+      return await db.insert('reminder_settings', setting.toMapForInsert());
     }
   }
 
@@ -770,6 +801,26 @@ class DatabaseService {
     return List.generate(maps.length, (i) {
       return UserTip.fromMap(maps[i]);
     });
+  }
+
+  /**
+   * 删除今日用户推荐内容
+   * 用于语言切换时清除缓存的推荐内容
+   * @author Author
+   * @date Current date and time
+   * @param userId 用户ID
+   * @return Future<void> 无返回值
+   * @throws Exception 当数据库操作失败时抛出异常
+   */
+  Future<void> deleteTodayUserTips(int userId) async {
+    final db = await database;
+    final today = DateTime.now().toIso8601String().split('T')[0];
+    await db.update(
+      'user_tips',
+      {'deleted': 1},
+      where: 'user_id = ? AND tip_date = ? AND deleted = ?',
+      whereArgs: [userId, today, 0],
+    );
   }
 
   // Update activity data and i18n table (internal method)

@@ -93,26 +93,26 @@ class TipsProvider with ChangeNotifier {
   Future<List<String>> _generateMockTips() async {
     // Get current language from SharedPreferences
     final prefs = await SharedPreferences.getInstance();
-    final languageCode = prefs.getString('language_code') ?? 'zh';
+    final languageCode = prefs.getString('language_code') ?? 'en';
     
     // Mock health tips based on language
     final Map<String, List<String>> tipsByLanguage = {
       'zh': [
-        'Drink at least 8 glasses of water daily to maintain adequate hydration.',
-        'Stand up and move for 5 minutes every hour to stretch and relieve fatigue.',
-        'Practice deep breathing exercises to reduce stress and improve focus.',
-        'Ensure 7-9 hours of quality sleep each night to promote body recovery.',
-        'Include protein in every meal to support muscle health and satiety.',
-        'Choose stairs over elevators whenever possible.',
-        'Get at least 10 minutes of natural sunlight daily to supplement vitamin D.',
-        'Maintain good posture when sitting and standing, avoid slouching.',
-        'Eat a variety of colorful fruits and vegetables to get essential nutrients.',
-        'Limit screen time before bed to improve sleep quality.',
-        'Engage in at least 30 minutes of physical activity daily.',
-        'Practice mindfulness meditation to promote mental health.',
-        'Keep healthy snacks like nuts and fruits readily available.',
-        'Maintain good social relationships to promote emotional health.',
-        'Listen to your body signals and rest when feeling fatigued.',
+        '每天至少喝8杯水，保持充足的水分摄入。',
+        '每小时起身活动5分钟，伸展身体缓解疲劳。',
+        '练习深呼吸，减轻压力并提高专注力。',
+        '确保每晚7-9小时的优质睡眠，促进身体恢复。',
+        '每餐都要包含蛋白质，支持肌肉健康和饱腹感。',
+        '尽可能选择爬楼梯而不是乘电梯。',
+        '每天至少晒10分钟太阳，补充维生素D。',
+        '坐立时保持良好姿势，避免驼背。',
+        '多吃各种颜色的水果和蔬菜，获取必需营养素。',
+        '睡前限制屏幕时间，改善睡眠质量。',
+        '每天至少进行30分钟的体育活动。',
+        '练习正念冥想，促进心理健康。',
+        '随时准备健康零食，如坚果和水果。',
+        '保持良好的社交关系，促进情感健康。',
+        '倾听身体信号，感到疲劳时及时休息。',
       ],
       'en': [
         'Stay hydrated by drinking at least 8 glasses of water throughout the day.',
@@ -157,19 +157,80 @@ class TipsProvider with ChangeNotifier {
     }
   }
 
-  // OpenAI integration implementation
+  /**
+   * 强制刷新今日推荐内容
+   * 当用户切换语言时调用此方法，清除今日缓存的推荐并重新生成
+   * @author Author
+   * @date Current date and time
+   * @param userId 用户ID
+   * @return Future<void> 无返回值
+   * @throws Exception 当数据库操作或API调用失败时抛出异常
+   */
+  Future<void> forceRefreshTodayTips(int userId) async {
+    debugPrint('=== Force refreshing today\'s tips for language change ===');
+    debugPrint('User ID: $userId');
+    
+    _isLoading = true;
+    notifyListeners();
+    
+    try {
+      // Clear today's tips from database
+      debugPrint('Clearing today\'s tips from database...');
+      await _databaseService.deleteTodayUserTips(userId);
+      debugPrint('Today\'s tips cleared successfully');
+      
+      // Clear local cache
+      _todayTips.clear();
+      debugPrint('Local tips cache cleared');
+      
+      // Generate new tips with current language
+      debugPrint('Generating new tips with current language...');
+      await _generateDailyTips(userId);
+      
+      // Reload tips from database
+      _todayTips = await _databaseService.getTodayUserTips(userId);
+      debugPrint('Reloaded ${_todayTips.length} new tips');
+      
+      debugPrint('=== Force refresh completed successfully ===');
+    } catch (e) {
+      debugPrint('=== Force refresh failed ===');
+      debugPrint('Error details: $e');
+    }
+    
+    _isLoading = false;
+    notifyListeners();
+  }
+
+  /**
+   * 使用OpenAI API生成个性化健康建议
+   * @author Author
+   * @date Current date and time
+   * @param userId 用户ID
+   * @return Future<List<String>> 返回3条健康建议列表
+   * @throws Exception 当API调用失败时抛出异常
+   */
   Future<List<String>> _generateTipsWithOpenAI(int userId) async {
     debugPrint('=== OpenAI recommendation generation started ===');
     debugPrint('User ID: $userId');
     
     try {
+      // Get current language from SharedPreferences
+      final prefs = await SharedPreferences.getInstance();
+      final languageCode = prefs.getString('language_code') ?? 'en';
+      debugPrint('Current language code: $languageCode');
+      
       // Get user's activity history for personalization
       debugPrint('Fetching user\'s recent 20 activity records...');
       final recentActivities = await _databaseService.getRecentActivityRecords(userId, limit: 20);
       debugPrint('Retrieved ${recentActivities.length} activity records');
       
-      // Build detailed context for OpenAI based on user's recent activities
-      String context = "Generate exactly 3 personalized health and fitness tips for a user based on their recent exercise patterns. ";
+      // Build detailed context for OpenAI based on user's recent activities and language
+      String context;
+      if (languageCode == 'zh') {
+        context = "请根据用户的运动模式，生成3条个性化的健康和健身建议。请用中文回复。";
+      } else {
+        context = "Generate exactly 3 personalized health and fitness tips for a user based on their recent exercise patterns. Please reply in English.";
+      }
       
       if (recentActivities.isNotEmpty) {
         debugPrint('Starting to analyze user activity patterns...');
@@ -197,7 +258,11 @@ class TipsProvider with ChangeNotifier {
           debugPrint('  - $detail');
         }
         
-        context += "User's recent exercise records: ${activityDetails.join(', ')}. ";
+        if (languageCode == 'zh') {
+          context += "用户最近的运动记录：${activityDetails.join('，')}。";
+        } else {
+          context += "User's recent exercise records: ${activityDetails.join(', ')}. ";
+        }
         
         // Add specific guidance based on activity patterns
         final mostFrequentActivity = activityMap.entries
@@ -207,24 +272,45 @@ class TipsProvider with ChangeNotifier {
         
         String specialGuidance = '';
         if (mostFrequentActivityName.toLowerCase().contains('stretch') || mostFrequentActivityName.toLowerCase().contains('flexibility')) {
-        specialGuidance = "Since the user frequently performs stretching exercises, prioritize content related to spinal health, muscle relaxation, and posture correction.";
-        debugPrint('Detected stretching pattern, will recommend spinal health content');
-      } else if (mostFrequentActivityName.toLowerCase().contains('running') || mostFrequentActivityName.toLowerCase().contains('cardio') || mostFrequentActivityName.toLowerCase().contains('aerobic')) {
-        specialGuidance = "Since the user frequently performs aerobic exercises, prioritize content related to cardiovascular function, endurance improvement, and exercise recovery.";
-        debugPrint('Detected aerobic exercise pattern, will recommend cardiovascular content');
-      } else if (mostFrequentActivityName.toLowerCase().contains('strength') || mostFrequentActivityName.toLowerCase().contains('weight') || mostFrequentActivityName.toLowerCase().contains('resistance')) {
-        specialGuidance = "Since the user frequently performs strength training, prioritize content related to muscle growth, protein supplementation, and training plans.";
-        debugPrint('Detected strength training pattern, will recommend muscle growth content');
-      } else {
-        debugPrint('No specific exercise pattern detected, using general recommendation strategy');
-      }
+          if (languageCode == 'zh') {
+            specialGuidance = "由于用户经常进行拉伸运动，请优先推荐脊椎健康、肌肉放松和姿势矫正相关的内容。";
+          } else {
+            specialGuidance = "Since the user frequently performs stretching exercises, prioritize content related to spinal health, muscle relaxation, and posture correction.";
+          }
+          debugPrint('Detected stretching pattern, will recommend spinal health content');
+        } else if (mostFrequentActivityName.toLowerCase().contains('running') || mostFrequentActivityName.toLowerCase().contains('cardio') || mostFrequentActivityName.toLowerCase().contains('aerobic')) {
+          if (languageCode == 'zh') {
+            specialGuidance = "由于用户经常进行有氧运动，请优先推荐心血管功能、耐力提升和运动恢复相关的内容。";
+          } else {
+            specialGuidance = "Since the user frequently performs aerobic exercises, prioritize content related to cardiovascular function, endurance improvement, and exercise recovery.";
+          }
+          debugPrint('Detected aerobic exercise pattern, will recommend cardiovascular content');
+        } else if (mostFrequentActivityName.toLowerCase().contains('strength') || mostFrequentActivityName.toLowerCase().contains('weight') || mostFrequentActivityName.toLowerCase().contains('resistance')) {
+          if (languageCode == 'zh') {
+            specialGuidance = "由于用户经常进行力量训练，请优先推荐肌肉增长、蛋白质补充和训练计划相关的内容。";
+          } else {
+            specialGuidance = "Since the user frequently performs strength training, prioritize content related to muscle growth, protein supplementation, and training plans.";
+          }
+          debugPrint('Detected strength training pattern, will recommend muscle growth content');
+        } else {
+          debugPrint('No specific exercise pattern detected, using general recommendation strategy');
+        }
         context += specialGuidance;
       } else {
-        context += "User has no activity records, please provide general health and exercise beginner advice.";
-      debugPrint('User has no activity records, will provide general health advice');
+        if (languageCode == 'zh') {
+          context += "用户没有运动记录，请提供一般的健康和运动入门建议。";
+        } else {
+          context += "User has no activity records, please provide general health and exercise beginner advice.";
+        }
+        debugPrint('User has no activity records, will provide general health advice');
       }
       
-      context += " Please ensure the advice is practical, specific, and motivational. Each suggestion should start with a number (1., 2., 3.), one per line.";
+      // Add final instructions based on language
+      if (languageCode == 'zh') {
+        context += "请确保建议实用、具体且有激励性。每条建议都应以数字开头（1.、2.、3.），每行一条。";
+      } else {
+        context += " Please ensure the advice is practical, specific, and motivational. Each suggestion should start with a number (1., 2., 3.), one per line.";
+      }
       debugPrint('Built prompt length: ${context.length} characters');
       debugPrint('Prompt content: $context');
 
@@ -233,6 +319,14 @@ class TipsProvider with ChangeNotifier {
       
       debugPrint('Starting OpenAI API call...');
       try {
+        // Build system message based on language
+        String systemMessage;
+        if (languageCode == 'zh') {
+          systemMessage = '你是一位专业的健身和健康教练。请提供实用、可操作的健康建议。请准确返回3条建议，每条建议单独一行，以数字编号（1.、2.、3.）。请用中文回复。';
+        } else {
+          systemMessage = 'You are a helpful fitness and health coach. Provide practical, actionable health tips. Return exactly 3 tips, each on a new line, numbered 1., 2., 3. Please reply in English.';
+        }
+        
         final response = await _dio.post(
           'https://api.siliconflow.cn/v1/chat/completions',
           options: Options(
@@ -246,7 +340,7 @@ class TipsProvider with ChangeNotifier {
             'messages': [
               {
                 'role': 'system',
-                'content': 'You are a helpful fitness and health coach. Provide practical, actionable health tips. Return exactly 3 tips, each on a new line, numbered 1., 2., 3.',
+                'content': systemMessage,
               },
               {
                 'role': 'user',
