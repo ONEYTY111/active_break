@@ -279,7 +279,7 @@ class ActivityProvider with ChangeNotifier {
       // Clear auto-complete flag
       _needsAutoComplete = false;
 
-      // Notify listeners with updated weekly data
+      // Notify listeners - this will trigger UI updates including weekly data refresh
       notifyListeners();
 
       return true;
@@ -318,14 +318,39 @@ class ActivityProvider with ChangeNotifier {
   Future<List<ActivityRecord>> getWeeklyRecords(int userId) async {
     try {
       final now = DateTime.now();
-      final startOfWeek = now.subtract(Duration(days: now.weekday - 1));
-      final endOfWeek = startOfWeek.add(const Duration(days: 6));
-
-      return await _databaseService.getActivityRecordsByDateRange(
+      
+      // Calculate start of week (Monday 00:00:00)
+      final startOfWeek = DateTime(
+        now.year,
+        now.month,
+        now.day - (now.weekday - 1),
+        0, 0, 0, 0,
+      );
+      
+      // Calculate end of week (Sunday 23:59:59)
+      final endOfWeek = DateTime(
+        startOfWeek.year,
+        startOfWeek.month,
+        startOfWeek.day + 6,
+        23, 59, 59, 999,
+      );
+      
+      debugPrint('=== getWeeklyRecords Debug ===');
+      debugPrint('Current time: $now');
+      debugPrint('Start of week: $startOfWeek');
+      debugPrint('End of week: $endOfWeek');
+      debugPrint('Week day: ${now.weekday}');
+      
+      final records = await _databaseService.getActivityRecordsByDateRange(
         userId,
         startOfWeek,
         endOfWeek,
       );
+      
+      debugPrint('Weekly records found: ${records.length}');
+      debugPrint('=== getWeeklyRecords Debug End ===');
+      
+      return records;
     } catch (e) {
       debugPrint('Error getting weekly records: $e');
       return [];

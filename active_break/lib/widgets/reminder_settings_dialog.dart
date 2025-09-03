@@ -7,6 +7,8 @@ import '../utils/app_localizations.dart';
 import '../services/reminder_scheduler_service.dart' as scheduler;
 import '../services/notification_service.dart';
 import '../utils/notification_test.dart';
+import '../utils/reminder_debug_helper.dart';
+import '../screens/debug_log_viewer_screen.dart';
 
 class ReminderSettingsDialog extends StatefulWidget {
   final int activityTypeId;
@@ -140,19 +142,31 @@ class _ReminderSettingsDialogState extends State<ReminderSettingsDialog> {
     }
   }
 
-  /// Test reminder functionality
-  /// @author 作者
-  /// @date 2024-12-25 当前时间
+  /// Test reminder functionality with enhanced feedback
+  /// @author Author
+  /// @date Current date and time
   /// @return Future<void>
   Future<void> _testReminder() async {
     try {
       final notificationService = NotificationService();
-      await notificationService.showTestReminder();
+      final result = await notificationService.showTestReminder();
+      
       if (mounted) {
+        final success = result['success'] ?? false;
+        final message = result['message'] ?? '';
+        
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(AppLocalizations.of(context).translate('test_reminder_sent')),
-            duration: const Duration(seconds: 3),
+            content: Text(success ? '测试通知发送成功！$message' : '测试通知发送失败：$message'),
+            backgroundColor: success ? Colors.green : Colors.red,
+            duration: const Duration(seconds: 5),
+            action: SnackBarAction(
+              label: '查看详情',
+              textColor: Colors.white,
+              onPressed: () {
+                _openDebugLogViewer();
+              },
+            ),
           ),
         );
       }
@@ -160,8 +174,9 @@ class _ReminderSettingsDialogState extends State<ReminderSettingsDialog> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(AppLocalizations.of(context).translate('test_reminder_failed')),
-            duration: const Duration(seconds: 3),
+            content: Text('测试通知发送异常：$e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 5),
           ),
         );
       }
@@ -169,8 +184,8 @@ class _ReminderSettingsDialogState extends State<ReminderSettingsDialog> {
   }
 
   /// Run diagnostic test for notification issues
-  /// @author 作者
-  /// @date 2024-12-25 当前时间
+  /// @author Author
+  /// @date Current date and time
   /// @return Future<void>
   Future<void> _runDiagnostic() async {
     final userProvider = Provider.of<UserProvider>(context, listen: false);
@@ -199,6 +214,57 @@ class _ReminderSettingsDialogState extends State<ReminderSettingsDialog> {
         );
       }
     }
+  }
+
+  /// Debug 5-minute reminder specifically
+  /// @author Author
+  /// @date Current date and time
+  /// @return Future<void>
+  Future<void> _debug5MinuteReminder() async {
+    final userProvider = Provider.of<UserProvider>(context, listen: false);
+    if (userProvider.currentUser?.userId == null) return;
+
+    try {
+      debugPrint('开始5分钟提醒专项调试...');
+      await ReminderDebugHelper.runFullDiagnostic(userProvider.currentUser!.userId!);
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('5分钟提醒调试完成'),
+            duration: const Duration(seconds: 3),
+            action: SnackBarAction(
+              label: '查看日志',
+              onPressed: () {
+                _openDebugLogViewer();
+              },
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint('5分钟提醒调试失败: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('5分钟提醒调试失败: $e'),
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    }
+  }
+
+  /// Open debug log viewer screen
+  /// @author Author
+  /// @date Current date and time
+  /// @return void
+  void _openDebugLogViewer() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => const DebugLogViewerScreen(),
+      ),
+    );
   }
 
   @override
@@ -231,9 +297,9 @@ class _ReminderSettingsDialogState extends State<ReminderSettingsDialog> {
               ),
               Slider(
                 value: _intervalValue.toDouble(),
-                min: 15,
+                min: 1, // Changed to 1 minute for easier debugging
                 max: 120,
-                divisions: 7,
+                divisions: 119, // Updated divisions to accommodate new range (120-1)/1 = 119
                 label: '$_intervalValue min',
                 onChanged: (value) {
                   setState(() {
@@ -341,14 +407,6 @@ class _ReminderSettingsDialogState extends State<ReminderSettingsDialog> {
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
           child: Text(AppLocalizations.of(context).translate('cancel')),
-        ),
-        TextButton(
-          onPressed: _testReminder,
-          child: Text(AppLocalizations.of(context).translate('test_reminder')),
-        ),
-        TextButton(
-          onPressed: _runDiagnostic,
-          child: const Text('诊断'),
         ),
         ElevatedButton(
           onPressed: _isLoading ? null : _saveSettings,

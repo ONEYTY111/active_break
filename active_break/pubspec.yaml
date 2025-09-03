@@ -82,6 +82,10 @@ dependencies:
   # Environment variables
   flutter_dotenv: ^5.1.0
 
+  # Device info and battery status
+  device_info_plus: ^10.1.0
+  battery_plus: ^6.0.1
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

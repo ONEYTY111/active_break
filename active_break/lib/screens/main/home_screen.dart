@@ -10,6 +10,7 @@ import '../../widgets/activity_chart.dart';
 import '../../models/physical_activity.dart';
 import '../../services/database_service.dart';
 
+
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -23,6 +24,7 @@ class _HomeScreenState extends State<HomeScreen> {
   List<ActivityRecord> _weeklyRecords = [];
   bool _isLoadingWeekly = false;
   int _lastRecordsCount = 0;
+  DateTime? _lastRecordTime;
 
   @override
   void initState() {
@@ -408,12 +410,23 @@ class _HomeScreenState extends State<HomeScreen> {
                 // Weekly summary card
                 Consumer<ActivityProvider>(
                   builder: (context, activityProvider, child) {
-                    // Only reload weekly data when recent records change (indicating new activity was added)
+                    // Reload weekly data when recent records change (indicating new activity was added)
                     final currentRecordsCount =
                         activityProvider.recentRecords.length;
                     WidgetsBinding.instance.addPostFrameCallback((_) {
                       if (mounted && currentRecordsCount != _lastRecordsCount) {
                         _lastRecordsCount = currentRecordsCount;
+                        _loadWeeklyData();
+                      }
+                    });
+                    
+                    // Also listen to the last record's timestamp to detect new records
+                    final lastRecordTime = activityProvider.recentRecords.isNotEmpty 
+                        ? activityProvider.recentRecords.first.endTime
+                        : null;
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      if (mounted && lastRecordTime != _lastRecordTime) {
+                        _lastRecordTime = lastRecordTime;
                         _loadWeeklyData();
                       }
                     });

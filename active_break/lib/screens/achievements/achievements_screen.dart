@@ -35,14 +35,13 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
     });
   }
 
+  /// Load achievements with specific language
   Future<void> _loadAchievementsWithLanguage(
     AchievementProvider achievementProvider,
     LanguageProvider languageProvider,
   ) async {
     final languageCode = languageProvider.locale.languageCode;
-    await achievementProvider.loadUserAchievements(languageCode);
-    await achievementProvider.loadAllAchievements();
-    await achievementProvider.loadAchievementStats();
+    await achievementProvider.reloadWithLanguage(languageCode);
   }
 
   @override
@@ -57,12 +56,11 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
           // Reload achievement data when language changes
           WidgetsBinding.instance.addPostFrameCallback((_) {
             final currentLanguage = languageProvider.locale.languageCode;
-            if (achievementProvider.userAchievements.isNotEmpty) {
-              _loadAchievementsWithLanguage(
-                achievementProvider,
-                languageProvider,
-              );
-            }
+            // Always reload when language changes, regardless of current data
+            _loadAchievementsWithLanguage(
+              achievementProvider,
+              languageProvider,
+            );
           });
           if (achievementProvider.isLoading) {
             return const Center(child: CircularProgressIndicator());

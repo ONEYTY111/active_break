@@ -1,17 +1,14 @@
 import 'dart:io';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/user_provider.dart';
 import '../../providers/theme_provider.dart';
 import '../../providers/language_provider.dart';
-import '../../providers/activity_provider.dart';
 import '../../providers/achievement_provider.dart';
+import '../../providers/tips_provider.dart';
 import '../../utils/app_localizations.dart';
 import '../../widgets/edit_profile_dialog.dart';
 import '../../widgets/change_password_dialog.dart';
-import '../../services/database_service.dart';
-import '../../models/physical_activity.dart';
 import '../achievements/achievements_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
@@ -361,9 +358,26 @@ class ProfileScreen extends StatelessWidget {
                   ),
                   value: 'zh',
                   groupValue: languageProvider.locale.languageCode,
-                  onChanged: (value) {
+                  onChanged: (value) async {
                     if (value != null) {
                       languageProvider.setLanguage(value);
+
+                      // 刷新推荐内容以匹配新语言
+                      final userProvider = Provider.of<UserProvider>(
+                        context,
+                        listen: false,
+                      );
+                      final tipsProvider = Provider.of<TipsProvider>(
+                        context,
+                        listen: false,
+                      );
+                      if (userProvider.currentUser != null &&
+                          userProvider.currentUser!.userId != null) {
+                        await tipsProvider.forceRefreshTodayTips(
+                          userProvider.currentUser!.userId!,
+                        );
+                      }
+
                       Navigator.of(context).pop();
                     }
                   },
@@ -374,9 +388,26 @@ class ProfileScreen extends StatelessWidget {
                   ),
                   value: 'en',
                   groupValue: languageProvider.locale.languageCode,
-                  onChanged: (value) {
+                  onChanged: (value) async {
                     if (value != null) {
                       languageProvider.setLanguage(value);
+
+                      // 刷新推荐内容以匹配新语言
+                      final userProvider = Provider.of<UserProvider>(
+                        context,
+                        listen: false,
+                      );
+                      final tipsProvider = Provider.of<TipsProvider>(
+                        context,
+                        listen: false,
+                      );
+                      if (userProvider.currentUser != null &&
+                          userProvider.currentUser!.userId != null) {
+                        await tipsProvider.forceRefreshTodayTips(
+                          userProvider.currentUser!.userId!,
+                        );
+                      }
+
                       Navigator.of(context).pop();
                     }
                   },

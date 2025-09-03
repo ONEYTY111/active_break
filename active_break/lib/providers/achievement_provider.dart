@@ -132,6 +132,26 @@ class AchievementProvider with ChangeNotifier {
     }
   }
 
+  /// Reload achievements with specific language
+  Future<void> reloadWithLanguage(String languageCode) async {
+    try {
+      _setLoading(true);
+      _setError(null);
+      
+      // Clear existing data to force reload
+      _userAchievements.clear();
+      
+      // Reload with new language
+      await loadUserAchievements(languageCode);
+      await loadAchievementStats();
+    } catch (e) {
+      _setError('Failed to reload achievements: $e');
+      debugPrint('Failed to reload achievements with language $languageCode: $e');
+    } finally {
+      _setLoading(false);
+    }
+  }
+
   /// Check and update achievements (called after user operations)
   Future<List<Achievement>> checkAndUpdateAchievements() async {
     try {

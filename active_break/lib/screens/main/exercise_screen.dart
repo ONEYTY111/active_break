@@ -472,6 +472,36 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
     }
   }
 
+  /// Save record silently without showing notifications
+  /// @author Author
+  /// @date Current date and time
+  /// @param context Build context
+  /// @return Future<bool> Returns true if save was successful
+  Future<bool> _saveRecordSilently(BuildContext context) async {
+    final userProvider = Provider.of<UserProvider>(context, listen: false);
+    final activityProvider = Provider.of<ActivityProvider>(
+      context,
+      listen: false,
+    );
+    final achievementProvider = Provider.of<AchievementProvider>(
+      context,
+      listen: false,
+    );
+
+    if (userProvider.currentUser == null) return false;
+
+    final success = await activityProvider.saveActivityRecord(
+      userProvider.currentUser!.userId!,
+    );
+
+    // If exercise record is saved successfully, check achievements
+    if (success) {
+      await achievementProvider.checkAchievementsAfterExercise(context);
+    }
+
+    return success;
+  }
+
   Future<void> _stopAndSaveActivity(BuildContext context) async {
     // Do not stop timer first; saveActivityRecord will stop it upon success
     await _saveRecord(context);
@@ -487,13 +517,13 @@ class _ExerciseScreenState extends State<ExerciseScreen> {
     activityProvider.clearAutoCompleteFlag();
 
     // Auto-complete exercise and save record
-    await _saveRecord(context);
+    final success = await _saveRecordSilently(context);
 
     // Reset duplicate prevention flag
     _isAutoCompleting = false;
 
-    // Show auto-completion prompt
-    if (mounted) {
+    // Show auto-completion prompt only if save was successful
+    if (mounted && success) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
